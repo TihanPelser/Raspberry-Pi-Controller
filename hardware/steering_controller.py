@@ -6,6 +6,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import digitalio as DIO
 import threading
 import numpy as np
+from typing import Optional
 
 
 # Steering DAC Address = 97
@@ -14,6 +15,9 @@ def _convert_voltage_to_distance(volt: float) -> float:
     # Output distance in [mm]
     return 133.51*volt - 4.209
 
+def _convert_distance_to_voltage(distance: float) -> float:
+    # Output voltage [V]
+    return (distance + 4.209) / 133.51
 
 def _convert_distance_to_angle(y: float) -> float:
 
@@ -33,7 +37,7 @@ def _convert_distance_to_angle(y: float) -> float:
     return delta - gamma
 
 
-def _convert_angle_to_distance(angle: float):
+def _convert_angle_to_distance(angle: float) -> float:
     pass
 
 
@@ -60,6 +64,7 @@ class SteeringController:
         # Steering
         # 0 Degree Steer = 2.48V
         self._output_voltage = 0
+        self._max_output_voltage = 1.
         self._steering_angle_set_point = 0.
         self._current_steering_angle = 0.
 
@@ -97,7 +102,7 @@ class SteeringController:
             d_term = (error - self._prev_error) * self.D
             self._prev_error = error
             output = p_term + d_term
-            self._output_voltage += output
+            self._set_output_voltage(abs(output))
             if output > 0:
                 self.right.value = False
                 self.left.value = True
@@ -110,6 +115,18 @@ class SteeringController:
         pot_voltage = self.adc_input.voltage
         lat_distance = _convert_voltage_to_distance(pot_voltage)
         self._current_steering_angle = _convert_distance_to_angle(lat_distance)
+
+    def _set_output_voltage(self, voltage_setting: float, voltage_override: Optional[float] = None):
+        if voltage_setting > self._max_output_voltage:
+            if voltage_override is not None:
+                if voltage_setting > voltage_override:
+                    self._output_voltage = voltage_override
+                else:
+                    self._output_voltage = voltage_setting
+            else:
+                self._output_voltage = self._max_output_voltage
+        else:
+            self._output_voltage = voltage_setting
 
     def get_steering_angle(self) -> float:
         return self._current_steering_angle
