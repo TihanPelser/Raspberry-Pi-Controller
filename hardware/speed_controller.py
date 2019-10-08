@@ -1,11 +1,9 @@
 from adafruit_blinka.board import raspi_40pin as board
-import busio
-import adafruit_ads1x15.ads1115 as ADC
 import adafruit_mcp4725 as DAC
-from adafruit_ads1x15.analog_in import AnalogIn
 import digitalio as DIO
 import threading
 from gps_interface.ublox_interface import UBX
+import time
 
 # Driving Speed DAC Address = 96
 
@@ -62,20 +60,25 @@ class SpeedController:
         self.power.value = False
         self.seat.value = False
 
+        time.sleep(0.2)
+
         self.power.value = True
+
+        time.sleep(0.2)
+
         self.seat.value = True
-        self.forward = True
         self.fs1.value = True
 
     def _shutdown_sequence(self):
-        self.fs1.value = 0
-        self.forward.value = 0
-        self.reverse.value = 0
-        self.seat.value = 0
-        self.power.value = 0
+        self.fs1.value = False
+        self.forward.value = False
+        self.reverse.value = False
+        self.seat.value = False
+        self.power.value = False
 
     def start_speed_control(self):
         self._startup_sequence()
+        self.forward.value = True
         self._stop_threads = False
         self._speed_thread = threading.Thread(target=self._correct_speed, name="speed", daemon=True)
         self._speed_thread.start()

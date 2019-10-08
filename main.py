@@ -7,7 +7,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import digitalio as DIO
 import yaml
 from hardware.steering_controller import SteeringController
-from hardware.speed_controller import DriveController
+from hardware.speed_controller import SpeedController
 
 
 if __name__ == "__main__":
