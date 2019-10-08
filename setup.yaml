@@ -1,0 +1,16 @@
+pins:
+  SDA: GPIO2
+  SCL: GPIO3
+  D1: GPIO21
+  D2: GPIO20
+  D3: GPIO16
+  D4: GPIO26
+  D5: GPIO19
+  D6: GPIO13
+  D7: GPIO6
+
+outputs:
+  AN-OUT1:
+    address: 96
+  AN-OUT2:
+    address: 97
