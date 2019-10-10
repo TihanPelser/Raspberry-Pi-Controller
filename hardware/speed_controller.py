@@ -40,8 +40,9 @@ class SpeedController:
         # Speed PID Controller
         self._prev_error = 0.
         self.p_gain = 1.
-        self.d_gain = 10.
+        self.d_gain = 0.5
         self._output_voltage = 0.
+        self._max_output_voltage = 1.
 
         # GPS
         self._gps = gps
@@ -62,23 +63,27 @@ class SpeedController:
 
         time.sleep(0.2)
 
-        self.power.value = True
+        self.seat.value = True
 
         time.sleep(0.2)
 
-        self.seat.value = True
-        self.fs1.value = True
+        self.power.value = True
+
+        # self.fs1.value = True
 
     def _shutdown_sequence(self):
-        self.fs1.value = False
         self.forward.value = False
         self.reverse.value = False
+        self.fs1.value = False
         self.seat.value = False
         self.power.value = False
 
     def start_speed_control(self):
         self._startup_sequence()
+        time.sleep(1)
         self.forward.value = True
+        time.sleep(0.2)
+        self.fs1.value = True
         self._stop_threads = False
         self._speed_thread = threading.Thread(target=self._correct_speed, name="speed", daemon=True)
         self._speed_thread.start()
@@ -99,9 +104,11 @@ class SpeedController:
             p_term = error * self.p_gain
             d_term = error * self.d_gain
             self._prev_error = error
-
             # TODO: Improve control algorithm
             output = p_term + d_term
+            self._increment_output_voltage(increment=output)
+
+            # self._set_output_voltage
 
     def set_speed(self, speed: float):
         self._speed_set_point = speed
@@ -111,4 +118,12 @@ class SpeedController:
 
     def _update_speed(self):
         self._measured_speed = self._gps.two_dim_speed
+
+    def _increment_output_voltage(self, increment):
+        new_voltage = max(self._output_voltage + increment, 0)
+        self._output_voltage = min(new_voltage, self._max_output_voltage)
+        self.dac_output.value = int(round(self._output_voltage / 5 * 65535))
+
+    def increase_max_output_voltage(self, new_max: float):
+        self._max_output_voltage = min(new_max, 5.)
 

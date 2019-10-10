@@ -14,6 +14,7 @@ if __name__ == "__main__":
 
     # Setup GPS
     gps = UBX(port="/dev/ttyACM0", baud=9600)
+    gps.start_reading()
 
     # I2C Setup
     i2c = busio.I2C(board.SCL, board.SDA)

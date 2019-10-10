@@ -1,7 +1,12 @@
-import numpy as np
-# from matplotlib import pyplot as plt
-from vincenty import vincenty as vc
+#!/usr/bin/env python
+# coding: utf-8
 
+# In[5]:
+
+
+import numpy as np
+from matplotlib import pyplot as plt
+from vincenty import vincenty as vc
 
 def xyval(pt):
    ycng = [pt[0], origin[1]]
@@ -36,3 +41,10 @@ print(xyval([-25,7531945, 28,22757296]))
 print(xyval([-25,7530198, 28,2277248]))
 
 print(heading)
+
+
+# In[ ]:
+
+
+
+

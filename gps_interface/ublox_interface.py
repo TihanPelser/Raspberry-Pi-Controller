@@ -1,13 +1,18 @@
 import serial
 import queue
 import threading
+from collections import deque
 
 
 class UBX:
     def __init__(self, port, baud):
         self.device = serial.Serial(port=port, baudrate=baud)
-        self.last_message = []
+        self.last_message = None
         self.queue = queue.Queue()
+
+        # Threading
+        self._read_thread = None
+        self._stop_threads = None
 
         # Position data
         self.two_dim_speed = 0.
@@ -15,13 +20,52 @@ class UBX:
         self.y_pos = 0.
         self.heading = 0.
 
+        # Moving average data
+        self._x_list = deque(maxlen=10)
+        self._y_list = deque(maxlen=10)
+        self._speed_list = deque(maxlen=10)
+        self._heading_list = deque(maxlen=10)
+
+    def start_reading(self):
+        self._stop_threads = False
+        self._read_thread = threading.Thread(target=self.read_messages, name="gps", daemon=True)
+        self._read_thread.start()
+
+    def stop_reading(self):
+        self._stop_threads = True
+
+    def _update_average_speed(self, speed):
+        # Convert to m/s
+        self._speed_list.append(speed/100)
+        self.two_dim_speed = sum(self._speed_list) / len(self._speed_list)
+
+    def _update_heading(self, heading):
+        self._heading_list.append(heading)
+        self.heading = sum(self._heading_list) / len(self._heading_list)
+
+    def _update_x(self, x):
+        self._x_list.append(x)
+        self.x_pos = sum(self._x_list) / len(self._x_list)
+
+    def _update_y(self, y):
+        self._y_list.append(y)
+        self.y_pos = sum(self._y_list)/len(self._y_list)
+
+    def _update_all(self):
+        # Uses last received message to update required properties
+        if self.last_message["type"] == "VELNED":
+            self._update_average_speed(self.last_message["speed2D"])
+            self._update_heading(self.last_message["heading"])
+        if self.last_message["type"] == "POSLLH":
+            pass
+
     def read_messages(self):
         # Uncomment for file writing
         # f = open("sample_parsed_2.txt", "w+")
 
         self.device.reset_input_buffer()
         try:
-            while True:
+            while not self._stop_threads:
                 b = self.device.read(1)
                 # print(b)
                 if b == b'\xB5':
@@ -33,21 +77,22 @@ class UBX:
                         length = int.from_bytes(length_byte, byteorder='little', signed=False)
                         payload = self.device.read(length)
                         check = self.device.read(2)
-                        if msg_id == b'\x01':
-                            name = "POSECEF"
-                        elif msg_id == b'\x02':
+                        # if msg_id == b'\x01':
+                        #     name = "POSECEF"
+                        if msg_id == b'\x02':
                             name = "POSLLH"
-                        elif msg_id == b'\x03':
-                            name = "STATUS"
+                        # elif msg_id == b'\x03':
+                        #     name = "STATUS"
                         elif msg_id == b'\x12':
                             name = "VELNED"
-                        elif msg_id == b'\x30':
-                            name = "SVINFO"
-                        elif msg_id == b'\x35':
-                            name = "SAT"
+                        # elif msg_id == b'\x30':
+                        #     name = "SVINFO"
+                        # elif msg_id == b'\x35':
+                        #     name = "SAT"
                         else:
-                            name = "UNKNOWN"
-                        # self.last_message = [name, payload, check]
+                            # Skip message if not important
+                            continue
+
                         msg = {
                             "name": name,
                             "payload": payload,
@@ -55,25 +100,15 @@ class UBX:
                         }
                         converted_msg = self.parse_message(msg)
                         self.last_message = converted_msg
-                        #print(self.last_message)
-                        self.queue.put(converted_msg)
-                        ##########################
-                        # Writing to files
-                        ##########################
-                        # f.write(str(self.last_message) + '\n')
-                        # f.write(msg_class)
-                        # f.write(msg_id)
-                        # f.write(length_byte)
-                        # f.write(payload)
-                        # f.write(check)
-                        # f.write(b'\n')
+                        self._update_all()
+                        # self.queue.put(converted_msg)
 
         except KeyboardInterrupt:
             print("Done reading")
             # Uncomment if writing to a file
             # f.close()
 
-    def parse_message(self, message: dict):
+    def parse_message(self, message: dict) -> dict:
         name = message["name"]
         payload = message["payload"]
         if name == "VELNED":

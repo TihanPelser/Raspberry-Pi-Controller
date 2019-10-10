@@ -7,6 +7,7 @@ import digitalio as DIO
 import threading
 import numpy as np
 from typing import Optional
+from collections import deque
 
 
 # Steering DAC Address = 97
@@ -15,17 +16,19 @@ def _convert_voltage_to_distance(volt: float) -> float:
     # Output distance in [mm]
     return 133.51*volt - 4.209
 
+
 def _convert_distance_to_voltage(distance: float) -> float:
     # Output voltage [V]
     return (distance + 4.209) / 133.51
 
+
 def _convert_distance_to_angle(y: float) -> float:
 
-    a = 81.20
-    b = 111.68
+    a = 111.68
+    b = 81.20
     c = 97.52
     l_total = 451.0601
-    l0 = 124.1643
+    l0 = 111.214
 
     l = l_total - y
 
@@ -38,6 +41,7 @@ def _convert_distance_to_angle(y: float) -> float:
 
 
 def _convert_angle_to_distance(angle: float) -> float:
+    # TODO: Trig calculations
     pass
 
 
@@ -45,11 +49,11 @@ class SteeringController:
 
     def __init__(self, i2c: busio.I2C):
         # Steering Digital Pins
-        self.left = DIO.DigitalInOut(board.D21)     # D1
-        self.right = DIO.DigitalInOut(board.D20)    # D2
+        self.left_pin = DIO.DigitalInOut(board.D21)     # D1
+        self.right_pin = DIO.DigitalInOut(board.D20)    # D2
         # Set as outputs
-        self.left.direction = DIO.Direction.OUTPUT
-        self.right.direction = DIO.Direction.OUTPUT
+        self.left_pin.direction = DIO.Direction.OUTPUT
+        self.right_pin.direction = DIO.Direction.OUTPUT
 
         # I2C and ADC Setup
         self._i2c_interface = i2c
@@ -62,13 +66,14 @@ class SteeringController:
         self.dac_output = DAC.MCP4725(self._i2c_interface, address=97)
 
         # Steering
-        # 0 Degree Steer = 2.48V
-        self._output_voltage = 0
-        self._max_output_voltage = 1.
+        # 0 Degree Steer = 2.577V
+        self._output_voltage = 1.3
         self._steering_angle_set_point = 0.
         self._current_steering_angle = 0.
+        self._adc_measurements = deque(maxlen=10)
 
         # Steering PID Controller
+        # Not implemented
         self.P = 0.1
         self.D = 1
         self._prev_error = 0.
@@ -81,6 +86,7 @@ class SteeringController:
         self.dac_output.value = 0
 
     def start_steering_control(self):
+        self.dac_output.value = int(round((self._output_voltage / 5) * 65535))  # 16bits
         self._stop_threads = False
         self._steering_thread = threading.Thread(target=self._correct_steering_angle, name="steering", daemon=True)
         self._steering_thread.start()
@@ -98,40 +104,38 @@ class SteeringController:
         while not self._stop_threads:
             self._update_current_steering_angle()
             error = self._steering_angle_set_point - self._current_steering_angle
-            p_term = error * self.P
-            d_term = (error - self._prev_error) * self.D
-            self._prev_error = error
-            output = p_term + d_term
-            self._set_output_voltage(abs(output))
-            if output > 0:
-                self.right.value = False
-                self.left.value = True
-            elif output < 0:
-                self.left.value = False
-                self.right.value = True
-            self.dac_output.value = int(round((self._output_voltage / 5) * 4095))
+            if error > 1:
+                self.left()
+            elif error < -1:
+                self.right()
+            else:
+                self.center()
 
     def _update_current_steering_angle(self) -> None:
-        pot_voltage = self.adc_input.voltage
-        lat_distance = _convert_voltage_to_distance(pot_voltage)
-        self._current_steering_angle = _convert_distance_to_angle(lat_distance)
+        self._adc_measurements.append(self.adc_input.voltage)
+        pot_voltage_avg = sum(self._adc_measurements)/len(self._adc_measurements)
+        lat_distance = _convert_voltage_to_distance(pot_voltage_avg)
+        self._current_steering_angle = np.rad2deg(_convert_distance_to_angle(lat_distance))
 
-    def _set_output_voltage(self, voltage_setting: float, voltage_override: Optional[float] = None):
-        if voltage_setting > self._max_output_voltage:
-            if voltage_override is not None:
-                if voltage_setting > voltage_override:
-                    self._output_voltage = voltage_override
-                else:
-                    self._output_voltage = voltage_setting
-            else:
-                self._output_voltage = self._max_output_voltage
-        else:
-            self._output_voltage = voltage_setting
+    def _set_output_voltage(self, voltage_setting: float):
+        self._output_voltage = min(voltage_setting, 5.)
 
     def get_steering_angle(self) -> float:
         return self._current_steering_angle
 
     def set_steering_angle(self, angle: float) -> None:
         self._steering_angle_set_point = angle
+
+    def left(self):
+        self.right_pin.value = False
+        self.left_pin.value = True
+
+    def right(self):
+        self.left_pin.value = False
+        self.right_pin.value = True
+
+    def center(self):
+        self.left_pin.value = False
+        self.right_pin.value = False
 
 
