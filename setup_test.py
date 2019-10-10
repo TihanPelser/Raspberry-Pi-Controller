@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
             if user_input.upper() == "S":
                 print("Steering control selected...")
-                steering_controller.start_steering_control()
+                steering_controller.start_steering_control_thread()
                 try:
                     while True:
                         angle = input("Steering Angle:\n")
@@ -50,12 +50,12 @@ if __name__ == "__main__":
                         steering_controller.set_steering_angle(angle=angle)
                 except KeyboardInterrupt:
                     print("Stopping steering control")
-                    steering_controller.stop_steering_control()
+                    steering_controller.stop_steering_control_thread()
                     continue
 
             elif user_input.upper() == "D":
                 print("Speed control selected...")
-                speed_controller.start_speed_control()
+                speed_controller.start_speed_control_thread()
                 try:
                     while True:
                         speed = input("Speed:\n")
@@ -68,7 +68,7 @@ if __name__ == "__main__":
                         speed_controller.set_speed(speed=speed)
                 except KeyboardInterrupt:
                     print("Stopping speed control")
-                    speed_controller.stop_speed_control()
+                    speed_controller.stop_speed_control_thread()
                     continue
 
     except KeyboardInterrupt:

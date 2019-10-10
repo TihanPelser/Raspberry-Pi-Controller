@@ -1,22 +1,23 @@
 # MAIN FILE TO BE EXECUTED
 from adafruit_blinka.board import raspi_40pin as board
 import busio
-import adafruit_ads1x15.ads1115 as ADC
-import adafruit_mcp4725 as DAC
-from adafruit_ads1x15.analog_in import AnalogIn
-import digitalio as DIO
-import yaml
-from hardware.steering_controller import SteeringController
-from hardware.speed_controller import SpeedController
+from hardware.hardware_controller import HardwareController
+from gps_interface.ublox_interface import UBX
 
+# PATH CONTROLLER
+from controller.DQNController import DQNController
 
 if __name__ == "__main__":
+
+    gps = UBX(port="/dev/ttyACM0", baud=9600)
+    gps.start_reading()
 
     # I2C Setup
     i2c = busio.I2C(board.SCL, board.SDA)
 
-    # Setup Steering Controller
-    steering_controller = SteeringController(i2c=i2c)
-    
-    # Setup drive controller
-    drive_controller = DriveController(i2c=i2c)
+    hardware_controller = HardwareController(i2c=i2c, gps=gps)
+
+    path_controller = DQNController(model_file="controller/models/COMPLEX_ARCH_1_IN_5_OUT.h5")
+
+    while True:
+        continue

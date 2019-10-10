@@ -39,8 +39,8 @@ class SpeedController:
 
         # Speed PID Controller
         self._prev_error = 0.
-        self.p_gain = 1.
-        self.d_gain = 0.5
+        self.p_gain = 0.5
+        self.d_gain = 1
         self._output_voltage = 0.
         self._max_output_voltage = 1.
 
@@ -78,18 +78,28 @@ class SpeedController:
         self.seat.value = False
         self.power.value = False
 
-    def start_speed_control(self):
+    def start_speed_control_thread(self):
         self._startup_sequence()
         time.sleep(1)
         self.forward.value = True
         time.sleep(0.2)
         self.fs1.value = True
         self._stop_threads = False
-        self._speed_thread = threading.Thread(target=self._correct_speed, name="speed", daemon=True)
+        self._speed_thread = threading.Thread(target=self._correct_speed_threaded, name="speed", daemon=True)
         self._speed_thread.start()
         print("Driving started")
 
-    def stop_speed_control(self):
+    def startup(self):
+        self._startup_sequence()
+        time.sleep(1)
+        self.forward.value = True
+        time.sleep(0.2)
+        self.fs1.value = True
+
+    def shutdown(self):
+        self._shutdown_sequence()
+
+    def stop_speed_control_thread(self):
         self._shutdown_sequence()
         self._stop_threads = True
         self._output_voltage = 0
@@ -97,7 +107,7 @@ class SpeedController:
         self.dac_output.value = 0
         print("Driving stopped")
 
-    def _correct_speed(self):
+    def _correct_speed_threaded(self):
         while not self._stop_threads:
             self._update_speed()
             error = self._speed_set_point - self._measured_speed
@@ -108,7 +118,15 @@ class SpeedController:
             output = p_term + d_term
             self._increment_output_voltage(increment=output)
 
-            # self._set_output_voltage
+    def correct_speed(self):
+        self._update_speed()
+        error = self._speed_set_point - self._measured_speed
+        p_term = error * self.p_gain
+        d_term = error * self.d_gain
+        self._prev_error = error
+        # TODO: Improve control algorithm
+        output = p_term + d_term
+        self._increment_output_voltage(increment=output)
 
     def set_speed(self, speed: float):
         self._speed_set_point = speed

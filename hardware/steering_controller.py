@@ -85,21 +85,28 @@ class SteeringController:
         # Set DAC Output
         self.dac_output.value = 0
 
-    def start_steering_control(self):
+    def start_steering_control_thread(self):
         self.dac_output.value = int(round((self._output_voltage / 5) * 65535))  # 16bits
         self._stop_threads = False
-        self._steering_thread = threading.Thread(target=self._correct_steering_angle, name="steering", daemon=True)
+        self._steering_thread = threading.Thread(target=self._correct_steering_angle_threaded, name="steering", daemon=True)
         self._steering_thread.start()
         print("Steering started...")
 
-    def stop_steering_control(self):
+    def startup(self):
+        self.dac_output.value = int(round((self._output_voltage / 5) * 65535))  # 16bits
+
+    def shutdown(self):
+        self.dac_output.value = 0
+        self.center()
+
+    def stop_steering_control_thread(self):
         self._stop_threads = True
         self._output_voltage = 0
         self._steering_angle_set_point = 0
         self.dac_output.value = 0
         print("Steering stopped")
 
-    def _correct_steering_angle(self):
+    def _correct_steering_angle_threaded(self):
         # TODO: Implement PID Steering Control
         while not self._stop_threads:
             self._update_current_steering_angle()
@@ -110,6 +117,16 @@ class SteeringController:
                 self.right()
             else:
                 self.center()
+
+    def correct_steering_angle(self):
+        self._update_current_steering_angle()
+        error = self._steering_angle_set_point - self._current_steering_angle
+        if error > 1:
+            self.left()
+        elif error < -1:
+            self.right()
+        else:
+            self.center()
 
     def _update_current_steering_angle(self) -> None:
         self._adc_measurements.append(self.adc_input.voltage)

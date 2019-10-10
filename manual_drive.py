@@ -39,8 +39,8 @@ if __name__ == "__main__":
             except AssertionError:
                 continue
 
-            steering_controller.start_steering_control()
-            speed_controller.start_speed_control()
+            steering_controller.start_steering_control_thread()
+            speed_controller.start_speed_control_thread()
 
             print("Press <ENTER> again when ready")
             user_input = input("Enter value:\n")
@@ -79,6 +79,6 @@ if __name__ == "__main__":
                     continue
     except KeyboardInterrupt:
         print("\rExiting...")
-        speed_controller.stop_speed_control()
-        steering_controller.stop_steering_control()
+        speed_controller.stop_speed_control_thread()
+        steering_controller.stop_steering_control_thread()
         exit(0)
