@@ -40,9 +40,13 @@ def _convert_distance_to_angle(y: float) -> float:
     return delta - gamma
 
 
-def _convert_angle_to_distance(angle: float) -> float:
-    # TODO: Trig calculations
-    pass
+# BASED ON LINEARISATION
+def _linear_angle_to_voltage(angle: float) -> float:
+    return 0.0133 * (angle + 5) + 2.567
+
+
+def _linear_voltage_to_angle(voltage: float) -> float:
+    return (voltage - 2.567) / 0.0133
 
 
 class SteeringController:
@@ -71,11 +75,16 @@ class SteeringController:
         self._steering_angle_set_point = 0.
         self._current_steering_angle = 0.
         self._adc_measurements = deque(maxlen=10)
+        self._adc_average = 0.
+        self._adc_set_point = 0.
+
+        self.left_max = 20
+        self.right_max = -20
 
         # Steering PID Controller
         # Not implemented
-        self.P = 0.1
-        self.D = 1
+        self.P = 1
+        self.D = 0.1
         self._prev_error = 0.
 
         # Threading
@@ -110,10 +119,11 @@ class SteeringController:
         # TODO: Implement PID Steering Control
         while not self._stop_threads:
             self._update_current_steering_angle()
-            error = self._steering_angle_set_point - self._current_steering_angle
-            if error > 1:
+            # error = self._steering_angle_set_point - self._current_steering_angle
+            error = self._adc_set_point - self._adc_average
+            if error > 0.005:
                 self.left()
-            elif error < -1:
+            elif error < -0.005:
                 self.right()
             else:
                 self.center()
@@ -130,9 +140,8 @@ class SteeringController:
 
     def _update_current_steering_angle(self) -> None:
         self._adc_measurements.append(self.adc_input.voltage)
-        pot_voltage_avg = sum(self._adc_measurements)/len(self._adc_measurements)
-        lat_distance = _convert_voltage_to_distance(pot_voltage_avg)
-        self._current_steering_angle = np.rad2deg(_convert_distance_to_angle(lat_distance))
+        self._adc_average = sum(self._adc_measurements)/len(self._adc_measurements)
+        self._current_steering_angle = np.rad2deg(_linear_voltage_to_angle(self._adc_average))
 
     def _set_output_voltage(self, voltage_setting: float):
         self._output_voltage = min(voltage_setting, 5.)
@@ -141,7 +150,15 @@ class SteeringController:
         return self._current_steering_angle
 
     def set_steering_angle(self, angle: float) -> None:
-        self._steering_angle_set_point = angle
+        if angle > self.left_max:
+            self._steering_angle_set_point = self.left_max
+        elif angle < self.right_max:
+            self._steering_angle_set_point = self.right_max
+        else:
+            self._steering_angle_set_point = angle
+
+        self._adc_set_point = _linear_angle_to_voltage(self._steering_angle_set_point)
+
 
     def left(self):
         self.right_pin.value = False

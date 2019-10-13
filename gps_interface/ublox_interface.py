@@ -2,10 +2,11 @@ import serial
 import queue
 import threading
 from collections import deque
+from vincenty import vincenty as vc
 
 
 class UBX:
-    def __init__(self, port, baud):
+    def __init__(self, port: str, baud: int, origin: tuple):
         self.device = serial.Serial(port=port, baudrate=baud)
         self.last_message = None
         self.queue = queue.Queue()
@@ -19,12 +20,19 @@ class UBX:
         self.x_pos = 0.
         self.y_pos = 0.
         self.heading = 0.
+        self.lat = 0.
+        self.lon = 0
+
+        # (Lat, Long)
+        self.origin = origin
 
         # Moving average data
-        self._x_list = deque(maxlen=10)
-        self._y_list = deque(maxlen=10)
-        self._speed_list = deque(maxlen=10)
-        self._heading_list = deque(maxlen=10)
+        self._x_list = deque(maxlen=2)
+        self._y_list = deque(maxlen=2)
+        self._speed_list = deque(maxlen=2)
+        self._heading_list = deque(maxlen=2)
+        self._lat_list = deque(maxlen=2)
+        self._lon_list = deque(maxlen=2)
 
     def start_reading(self):
         self._stop_threads = False
@@ -51,13 +59,33 @@ class UBX:
         self._y_list.append(y)
         self.y_pos = sum(self._y_list)/len(self._y_list)
 
+    def _update_lat(self, lat):
+        self._lat_list.append(lat)
+        self.lat = sum(self._lat_list) / len(self._lat_list)
+
+    def _update_lon(self, lon):
+        self._lon_list.append(lon)
+        self.lon = sum(self._lon_list)/len(self._lon_list)
+
+    def _xyval(self, point):
+        delta_lat = [point[0], self.origin[1]]
+        delta_long = [self.origin[0], point[1]]
+        x = vc(self.origin, delta_lat, miles="False") * 1000
+        y = vc(self.origin, delta_long, miles="False") * 1000
+        return x, y
+
+    def _convert_geo_to_planar(self, geo_point: tuple):
+        # distance = vc(self.origin, geo_point)
+        pass
+
     def _update_all(self):
         # Uses last received message to update required properties
         if self.last_message["type"] == "VELNED":
             self._update_average_speed(self.last_message["speed2D"])
             self._update_heading(self.last_message["heading"])
         if self.last_message["type"] == "POSLLH":
-            pass
+            self._update_lat(self.last_message["LAT"])
+            self._update_lon(self.last_message["LON"])
 
     def read_messages(self):
         # Uncomment for file writing
