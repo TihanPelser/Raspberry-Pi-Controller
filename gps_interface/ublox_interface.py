@@ -2,11 +2,12 @@ import serial
 import queue
 import threading
 from collections import deque
+from typing import Optional
 from vincenty import vincenty as vc
 
 
 class UBX:
-    def __init__(self, port: str, baud: int, origin: tuple):
+    def __init__(self, port: str, baud: int, origin: tuple, gps_log: Optional[str] = None):
         self.device = serial.Serial(port=port, baudrate=baud)
         self.last_message = None
         self.queue = queue.Queue()
@@ -34,17 +35,16 @@ class UBX:
         self._lat_list = deque(maxlen=2)
         self._lon_list = deque(maxlen=2)
 
-        self.data_log = []
-        self.logging = False
-        self.log_file = ""
-
-    def start_reading(self, log: bool = False, file_name: str = ""):
-        if log:
-            if not file_name == "":
-                print("Specify a file name!")
-                return
+        if gps_log is not None:
+            self.data_log = []
             self.logging = True
-            self.log_file = file_name
+            self.log_file = gps_log
+        else:
+            self.data_log = []
+            self.logging = False
+            self.log_file = ""
+
+    def start_reading(self):
         self._stop_threads = False
         self._read_thread = threading.Thread(target=self.read_messages, name="gps", daemon=True)
         self._read_thread.start()
@@ -203,3 +203,6 @@ class UBX:
                 "type": "NONE",
             }
             return converted
+
+    def set_origin(self):
+        pass
