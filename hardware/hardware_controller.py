@@ -89,10 +89,13 @@ class HardwareController:
 
         # Speed PID Controller
         self._prev_error_speed = 0.
+        self._cumulative_error_speed = 0.
         self.p_gain_speed = 1
-        self.d_gain_speed = 0.2
+        self.d_gain_speed = 0.1
+        self.i_gain_speed = 1
         self._speed_output_voltage = 0
         self._max_speed_voltage = 1.2
+
 
         # Steering
         # 0 Degree Steer = 2.582V
@@ -183,11 +186,13 @@ class HardwareController:
     def correct_speed(self):
         self._update_speed()
         error = self._speed_set_point - self._measured_speed
+        self._cumulative_error_speed += error
         p_term = error * self.p_gain_speed
         d_term = (error - self._prev_error_speed) * self.d_gain_speed
+        i_term = self._cumulative_error_speed * self.i_gain_speed
         self._prev_error_speed = error
         # TODO: Improve control algorithm
-        output = p_term + d_term
+        output = p_term + d_term + i_term
         self._increment_speed_output_voltage(increment=output)
 
     def set_speed(self, speed: float):

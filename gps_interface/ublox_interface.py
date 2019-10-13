@@ -34,13 +34,28 @@ class UBX:
         self._lat_list = deque(maxlen=2)
         self._lon_list = deque(maxlen=2)
 
-    def start_reading(self):
+        self.data_log = []
+        self.logging = False
+        self.log_file = ""
+
+    def start_reading(self, log: bool = False, file_name: str = ""):
+        if log:
+            if not file_name == "":
+                print("Specify a file name!")
+                return
+            self.logging = True
+            self.log_file = file_name
         self._stop_threads = False
         self._read_thread = threading.Thread(target=self.read_messages, name="gps", daemon=True)
         self._read_thread.start()
 
     def stop_reading(self):
         self._stop_threads = True
+        if self.logging:
+            with open(f"{self.log_file}.txt", "w+") as log_file:
+                log_file.write("Lat, Long, Heading, 2D Speed, X, Y")
+                for data_point in self.data_log:
+                    log_file.write(data_point + "\n")
 
     def _update_average_speed(self, speed):
         # Convert to m/s
@@ -129,6 +144,8 @@ class UBX:
                         converted_msg = self.parse_message(msg)
                         self.last_message = converted_msg
                         self._update_all()
+                        self.data_log.append([self.lat, self.lon, self.heading, self.two_dim_speed, self.x_pos,
+                                              self.y_pos])
                         # self.queue.put(converted_msg)
 
         except KeyboardInterrupt:
