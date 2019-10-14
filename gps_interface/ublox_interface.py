@@ -28,12 +28,12 @@ class UBX:
         self.origin = origin
 
         # Moving average data
-        self._x_list = deque(maxlen=2)
-        self._y_list = deque(maxlen=2)
-        self._speed_list = deque(maxlen=2)
-        self._heading_list = deque(maxlen=2)
-        self._lat_list = deque(maxlen=2)
-        self._lon_list = deque(maxlen=2)
+        self._x_list = deque(maxlen=3)
+        self._y_list = deque(maxlen=3)
+        self._speed_list = deque(maxlen=3)
+        self._heading_list = deque(maxlen=3)
+        self._lat_list = deque(maxlen=3)
+        self._lon_list = deque(maxlen=3)
 
         if gps_log is not None:
             self.data_log = []
@@ -204,5 +204,11 @@ class UBX:
             }
             return converted
 
-    def set_origin(self):
-        pass
+    def set_origin(self, point: Optional[tuple] = None):
+        if point is not None:
+            self.origin = point
+        else:
+            self.origin = (self.lat, self.lon)
+
+    def get_point(self):
+        return [self.lat, self.lon]
