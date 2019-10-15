@@ -13,11 +13,11 @@ from collections import deque
 
 # BASED ON LINEARISATION
 def _linear_angle_to_voltage(angle: float) -> float:
-    return 0.0133 * angle + 2.567
+    return 0.0133 * angle + 2.58296
 
 
 def _linear_voltage_to_angle(voltage: float) -> float:
-    return (voltage - 2.567) / 0.0133
+    return (voltage - 2.58296) / 0.0133
 
 
 # CALCULATED (DEPRECATED)
@@ -40,6 +40,7 @@ def _convert_distance_to_angle(y: float) -> float:
     l0 = 111.214
 
     l = l_total - y
+
     try:
         gamma = np.arccos((a**2 + c**2 + l0**2 - b**2)/(2 * a * np.sqrt(c**2 + l0**2))) + np.arctan(c/l0)
 
@@ -78,7 +79,7 @@ class HardwareController:
 
         # GPS
         self._gps = gps
-        self._gps.start_reading()
+        # self._gps.start_reading()
 
         # I2C and ADC Setup
         self._i2c_interface = busio.I2C(board.SCL, board.SDA)
@@ -110,7 +111,7 @@ class HardwareController:
         # Steering
         # 0 Degree Steer = 2.582V
         self._steer_output_voltage = 0.
-        self._max_steer_voltage = 3.
+        self._max_steer_voltage = 4.
         self._min_steer_voltage = 0.05
         self._steering_angle_set_point = 0.
         self._current_steering_angle = 0.
@@ -123,9 +124,9 @@ class HardwareController:
 
         # Steering PID Controller
         # Not implemented
-        self.p_gain_steer = 10
-        self.d_gain_steer = 0.03
-        self.i_gain_steer = 1.
+        self.p_gain_steer = 25.
+        self.d_gain_steer = 5.
+        self.i_gain_steer = .8
         self._prev_error_steer = 0.
         self._cumulative_error_steer = 0.
 
@@ -168,8 +169,10 @@ class HardwareController:
         self.forward.value = True
         time.sleep(0.2)
         self.fs1.value = True
-        print("Starting up steering actuator...")
+        print("Resetting steering angle...")
         self.steer_dac.value = 0
+        self._update_current_steering_angle()
+        self._steer_adc_set_point = _linear_angle_to_voltage(self._steering_angle_set_point)
 
     def shutdown(self):
         print("Shutting down motor...")
@@ -180,6 +183,9 @@ class HardwareController:
         self.center()
 
     def start_control(self):
+        if self._gps._read_thread is None:
+            print("GPS not reading!")
+            return
         print("Starting hardware control...")
         self.startup()
         self._stop_threads = False
@@ -193,7 +199,6 @@ class HardwareController:
         self.shutdown()
 
     def _control(self):
-
         while not self._stop_threads:
             self.correct_steering_angle()
             self.correct_speed()
@@ -270,9 +275,10 @@ class HardwareController:
 
     def correct_steering_angle(self):
         self._update_current_steering_angle()
-        error = self._steer_adc_average - self._steer_adc_set_point
+        error = self._steer_adc_set_point - self._steer_adc_average
         # error = self._steer_adc_set_point - self._steer_adc_average
         self._cumulative_error_steer += error
+        self._prev_error_steer = error
         p_term = self.p_gain_steer * error
         d_term = self.d_gain_steer * (error - self._prev_error_steer)
         i_term = self.i_gain_steer * self._cumulative_error_steer
@@ -280,9 +286,9 @@ class HardwareController:
         # if not self._steering_changed:
         #     return
         self._increment_steering_output_voltage(new_voltage=abs(output))
-        if output > 0.2:
+        if error > 0.002:
             self.left()
-        elif output < -0.2:
+        elif error < -0.002:
             self.right()
         else:
             self._cumulative_error_steer = 0.
@@ -296,7 +302,7 @@ class HardwareController:
 
     def _increment_steering_output_voltage(self, new_voltage: float):
         # v = max(new_voltage, self._min_steer_voltage)
-        self._steer_output_voltage = sorted([self._min_steer_voltage, new_voltage, self._max_steer_voltage])[0]
+        self._steer_output_voltage = sorted([self._min_steer_voltage, new_voltage, self._max_steer_voltage])[1]
         self.steer_dac.value = int(round(self._steer_output_voltage / 5 * 65535))
 
     def get_steering_angle(self) -> float:
@@ -309,7 +315,7 @@ class HardwareController:
         #     self._steering_angle_set_point = self.right_max
         # else:
         #     self._steering_angle_set_point = angle
-
+        self._steering_changed = True
         # Returns middle value
         self._steering_angle_set_point = sorted([self.left_max, angle, self.right_max])[1]
         self._steer_adc_set_point = _linear_angle_to_voltage(self._steering_angle_set_point)

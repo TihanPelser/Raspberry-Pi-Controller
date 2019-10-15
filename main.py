@@ -30,9 +30,20 @@ if __name__ == "__main__":
     # I2C Setup
     i2c = busio.I2C(board.SCL, board.SDA)
 
+    gps.start_reading()
+
     hardware_controller = HardwareController(gps=gps)
 
     path_controller = DQNController(model_file="controller/models/COMPLEX_ARCH_1_IN_5_OUT.h5")
 
-    while True:
-        continue
+    try:
+        hardware_controller.startup()
+        hardware_controller.start_control()
+        # Speed Override:
+        speed_volt = 0.8
+        # hardware_controller.speed_dac.value = int(round(speed_volt/5) * 65535)
+        while True:
+            continue
+
+    except KeyboardInterrupt:
+        hardware_controller.shutdown()

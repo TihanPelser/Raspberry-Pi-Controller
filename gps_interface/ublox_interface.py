@@ -4,6 +4,7 @@ import threading
 from collections import deque
 from typing import Optional
 from vincenty import vincenty as vc
+# from geopy.distance import great_circle as gc
 
 
 class UBX:
@@ -28,8 +29,6 @@ class UBX:
         self.origin = origin
 
         # Moving average data
-        self._x_list = deque(maxlen=3)
-        self._y_list = deque(maxlen=3)
         self._speed_list = deque(maxlen=3)
         self._heading_list = deque(maxlen=3)
         self._lat_list = deque(maxlen=3)
@@ -66,14 +65,6 @@ class UBX:
         self._heading_list.append(heading)
         self.heading = sum(self._heading_list) / len(self._heading_list)
 
-    def _update_x(self, x):
-        self._x_list.append(x)
-        self.x_pos = sum(self._x_list) / len(self._x_list)
-
-    def _update_y(self, y):
-        self._y_list.append(y)
-        self.y_pos = sum(self._y_list)/len(self._y_list)
-
     def _update_lat(self, lat):
         self._lat_list.append(lat)
         self.lat = sum(self._lat_list) / len(self._lat_list)
@@ -81,17 +72,6 @@ class UBX:
     def _update_lon(self, lon):
         self._lon_list.append(lon)
         self.lon = sum(self._lon_list)/len(self._lon_list)
-
-    def _xyval(self, point):
-        delta_lat = [point[0], self.origin[1]]
-        delta_long = [self.origin[0], point[1]]
-        x = vc(self.origin, delta_lat, miles="False") * 1000
-        y = vc(self.origin, delta_long, miles="False") * 1000
-        return x, y
-
-    def _convert_geo_to_planar(self, geo_point: tuple):
-        # distance = vc(self.origin, geo_point)
-        pass
 
     def _update_all(self):
         # Uses last received message to update required properties
@@ -212,3 +192,6 @@ class UBX:
 
     def get_point(self):
         return [self.lat, self.lon]
+
+    def get_current_data(self):
+        return [self.lat, self.lon, self.heading, self.two_dim_speed]

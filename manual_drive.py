@@ -29,7 +29,7 @@ if __name__ == "__main__":
     #
     # # Setup Speed Controller
     # speed_controller = SpeedController(i2c=i2c, gps=gps)
-
+    gps.start_reading()
     hw_controller = HardwareController(gps=gps)
     gps_data = []
 
@@ -94,6 +94,10 @@ if __name__ == "__main__":
                             pass
 
                     print(f"\rSpeed: {hw_controller.get_speed()}:{current_speed}, Steering Angle: {hw_controller.get_steering_angle()}:{current_angle}")
+                    print(f"SET: {hw_controller._steer_adc_set_point}")
+                    print(f"AVG: {hw_controller._steer_adc_average}")
+                    print(f"ERROR: {hw_controller._prev_error_steer}")
+                    print(f"STEERING: {hw_controller._steering_angle_set_point}")
                 except KeyboardInterrupt:
                     continue
     except KeyboardInterrupt:
