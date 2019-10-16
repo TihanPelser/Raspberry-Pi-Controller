@@ -135,7 +135,7 @@ class SpeedController:
         return self._measured_speed
 
     def _update_speed(self):
-        self._measured_speed = self._gps.two_dim_speed
+        self._measured_speed = self._gps.speed
 
     def _increment_output_voltage(self, increment):
         new_voltage = max(self._output_voltage + increment, 0)

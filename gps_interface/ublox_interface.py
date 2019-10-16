@@ -3,10 +3,13 @@ import queue
 import threading
 from collections import deque
 from typing import Optional
+from collections import namedtuple
+
+position_data = namedtuple("pos_data", "lat, long, heading, speed")
 
 
 class UBX:
-    def __init__(self, port: str, baud: int):
+    def __init__(self, port: str = "/dev/ttyACM0", baud: int = 9600):
         self.device = serial.Serial(port=port, baudrate=baud)
         self.last_message = None
         self.queue = queue.Queue()
@@ -17,16 +20,16 @@ class UBX:
         self._stop_threads = None
 
         # Position data
-        self.two_dim_speed = 0.
+        self.speed = 0.
         self.heading = 0.
         self.lat = 0.
-        self.lon = 0
+        self.long = 0
 
         # Moving average data
         self._speed_list = deque(maxlen=3)
         self._heading_list = deque(maxlen=3)
         self._lat_list = deque(maxlen=3)
-        self._lon_list = deque(maxlen=3)
+        self._long_list = deque(maxlen=3)
 
     def start_reading(self):
         self._stop_threads = False
@@ -41,7 +44,7 @@ class UBX:
     def _update_average_speed(self, speed):
         # Convert to m/s
         self._speed_list.append(speed/100)
-        self.two_dim_speed = sum(self._speed_list) / len(self._speed_list)
+        self.speed = sum(self._speed_list) / len(self._speed_list)
 
     def _update_heading(self, heading):
         self._heading_list.append(heading)
@@ -52,8 +55,8 @@ class UBX:
         self.lat = sum(self._lat_list) / len(self._lat_list)
 
     def _update_lon(self, lon):
-        self._lon_list.append(lon)
-        self.lon = sum(self._lon_list)/len(self._lon_list)
+        self._long_list.append(lon)
+        self.long = sum(self._long_list) / len(self._long_list)
 
     def _update_all(self):
         # Uses last received message to update required properties
@@ -163,11 +166,5 @@ class UBX:
             }
             return converted
 
-    # def set_origin(self, point: Optional[tuple] = None):
-    #     if point is not None:
-    #         self.origin = point
-    #     else:
-    #         self.origin = (self.lat, self.lon)
-
     def get_current_data(self):
-        return [self.lat, self.lon, self.heading, self.two_dim_speed]
+        return position_data(lat=self.lat, long=self.long, heading=self.heading, speed=self.speed)

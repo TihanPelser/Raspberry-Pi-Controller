@@ -19,7 +19,7 @@ if __name__ == "__main__":
     max_angle_right = -20
 
     # Setup GPS
-    gps = UBX(port="/dev/ttyACM0", baud=9600, origin=(0,0))
+    gps = UBX(port="/dev/ttyACM0", baud=9600)
     # gps.start_reading()
 
     # I2C Setup
@@ -62,7 +62,7 @@ if __name__ == "__main__":
                     #     continue
 
                     print("Starting GPS log:")
-                    gps_data.append([gps.lat, gps.lon, gps.heading, gps.two_dim_speed])
+                    gps_data.append([gps.lat, gps.long, gps.heading, gps.speed])
 
                     if user_input.upper() == "W":
                         current_speed = min(current_speed + 1, max_speed)

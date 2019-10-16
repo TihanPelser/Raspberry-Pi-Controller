@@ -8,7 +8,10 @@ from gps_interface.ublox_interface import UBX
 import threading
 import time
 import numpy as np
-from collections import deque
+from collections import deque, namedtuple
+
+state = namedtuple("state", "speed_set_point, current_speed, steering_angle_set_point, current_steering_angle,"
+                            "steer_adc_set_point, steer_adc_avg, steer_dac_value, speed_dac_value")
 
 
 # BASED ON LINEARISATION
@@ -18,37 +21,6 @@ def _linear_angle_to_voltage(angle: float) -> float:
 
 def _linear_voltage_to_angle(voltage: float) -> float:
     return (voltage - 2.58296) / 0.0133
-
-
-# CALCULATED (DEPRECATED)
-def _convert_voltage_to_distance(volt: float) -> float:
-    # Output distance in [mm]
-    return 133.51 * volt - 4.209
-
-
-def _convert_distance_to_voltage(distance: float) -> float:
-    # Output voltage [V]
-    return (distance + 4.209) / 133.51
-
-
-def _convert_distance_to_angle(y: float) -> float:
-
-    a = 111.68
-    b = 81.20
-    c = 97.52
-    l_total = 451.0601
-    l0 = 111.214
-
-    l = l_total - y
-
-    try:
-        gamma = np.arccos((a**2 + c**2 + l0**2 - b**2)/(2 * a * np.sqrt(c**2 + l0**2))) + np.arctan(c/l0)
-
-        delta = np.arccos((a**2 + c**2 + l**2 - b**2)/(2 * a * np.sqrt(c**2 + l**2))) + np.arctan(c/l)
-    except FloatingPointError:
-        return 0.
-    # Left +, Right -
-    return delta - gamma
 
 
 class HardwareController:
@@ -196,6 +168,9 @@ class HardwareController:
 
     def stop_control(self):
         print("Stopping hardware control...")
+        self.stop()
+        while self._measured_speed > 0.3:
+            continue
         self._stop_threads = True
         self.shutdown()
 
@@ -247,7 +222,7 @@ class HardwareController:
         return self._measured_speed * direction
 
     def _update_speed(self):
-        self._measured_speed = self._gps.two_dim_speed
+        self._measured_speed = self._gps.speed
 
     def _increment_speed_output_voltage(self, increment):
         new_voltage = max(self._speed_output_voltage + increment, 0)
@@ -333,3 +308,15 @@ class HardwareController:
         # Returns middle value
         self._steering_angle_set_point = sorted([self.left_max, angle, self.right_max])[1]
         self._steer_adc_set_point = _linear_angle_to_voltage(self._steering_angle_set_point)
+
+    # Data logging
+    ############################################################
+
+    def get_current_data(self):
+        data = state(speed_set_point=self._speed_set_point, current_speed=self._measured_speed,
+                     steering_angle_set_point=self._steering_angle_set_point,
+                     current_steering_angle=self._current_steering_angle, steer_adc_set_point=self._steer_adc_set_point,
+                     steer_adc_avg=self._steer_adc_average, steer_dac_value=self._steer_output_voltage,
+                     speed_dac_value=self._speed_output_voltage)
+        return data
+
