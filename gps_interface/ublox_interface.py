@@ -26,7 +26,7 @@ class UBX:
         self.long = 0
 
         # Moving average data
-        self._speed_list = deque(maxlen=3)
+        self._speed_list = deque(maxlen=1)
         self._heading_list = deque(maxlen=3)
         self._lat_list = deque(maxlen=3)
         self._long_list = deque(maxlen=3)

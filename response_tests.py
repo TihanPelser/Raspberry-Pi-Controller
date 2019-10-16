@@ -5,8 +5,6 @@ import time
 import threading
 
 
-def gather_data
-
 if __name__ == "__main__":
     TYPE = sys.argv[1]
     FILE_NAME = sys.argv[2]
@@ -18,26 +16,49 @@ if __name__ == "__main__":
     gps.start_reading()
     hw = HardwareController(gps=gps)
     response_data = []
+    user_input = input(f"Enter a value")
     try:
-        while True:
-            hw.start_control()
-            user_input = input(f"Enter a value")
-            start = time.time()
-            measuring_time = 0.
-            while measuring_time <= 10:
-                if TYPE == "steer":
-                    hw.set_steering_angle(float(user_input))
-                    data = hw.get_current_data()
-                    response_data.append([data.steering_angle_set_point, data.current_steering_angle])
-                elif TYPE == "speed"
-                    hw.set_speed(float(user_input))
-                    data = hw.get_current_data()
-                    response_data.append([data.speed_set_point, data.current_speed])
-                measuring_time = time.time() - start
+        hw.start_control()
+        time.sleep(5)
+        # Compensate for heavy battery
+        hw.set_steering_angle(-1)
+        print("Started Sampling")
+        start = time.time()
+        measuring_time = 0.
+        while measuring_time <= 2:
+            if TYPE == "steer":
+                hw.set_steering_angle(0)
+                time.sleep(0.01)
+                data = hw.get_current_data()
+                response_data.append([data.steering_angle_set_point, data.current_steering_angle])
+            elif TYPE == "speed":
+                hw.set_speed(float(user_input))
+                time.sleep(0.01)
+                data = hw.get_current_data()
+                response_data.append([data.speed_set_point, data.current_speed])
+            measuring_time = time.time() - start
+        while measuring_time <= 5:
+            if TYPE == "steer":
+                hw.set_steering_angle(float(user_input))
+                time.sleep(0.01)
+                data = hw.get_current_data()
+                response_data.append([data.steering_angle_set_point, data.current_steering_angle])
+            elif TYPE == "speed":
+                hw.set_speed(float(user_input))
+                time.sleep(0.01)
+                data = hw.get_current_data()
+                response_data.append([data.speed_set_point, data.current_speed])
+            measuring_time = time.time() - start
     except KeyboardInterrupt:
-        print("Done sampling")
+        print("Manual stop")
         hw.stop_control()
-
-    with open(f"ResponseData/{FILE_NAME}.txt") as file:
+        exit()
+    print("Done sampling")
+    with open(f"ResponseData/{FILE_NAME}.txt", "w+") as file:
         for data_point in response_data:
+            file.write(str(data_point) + "\n")
+
+    hw.stop_control()
+
+    print("Finished writing")
 

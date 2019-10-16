@@ -79,6 +79,7 @@ if __name__ == "__main__":
 
                     elif user_input.upper() == "P":
                         hw_controller.stop_control()
+                        print("Controller stopped")
                         break
                     else:
                         try:
@@ -99,7 +100,8 @@ if __name__ == "__main__":
                     print(f"ERROR: {hw_controller._prev_error_steer}")
                     print(f"STEERING: {hw_controller._steering_angle_set_point}")
                 except KeyboardInterrupt:
-                    continue
+                    hw_controller.stop_control()
+                    break
     except KeyboardInterrupt:
         print("\rExiting...")
         hw_controller.stop_control()
