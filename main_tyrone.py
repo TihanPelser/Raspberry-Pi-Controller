@@ -29,6 +29,10 @@ xs = round(xst * np.cos(theta) + yst * np.sin(theta), 15)
 ys = round(-xst * np.sin(theta) + yst * np.cos(theta), 15)
 
 if __name__ == "__main__":
+
+    gps_results_file = sys.argv[1]
+    starget_results_file = sys.argv[1]
+
     ##Path
     pathx = np.arange(0, 35, 0.001)
     pathy = []
@@ -48,7 +52,11 @@ if __name__ == "__main__":
     try:
         hardware_controller.startup()
         hardware_controller.start_control()
+        gps_data = []
         while True:
+            data = gps.get_current_data()
+            gps_data.append([data.lat, data.lon, data.speed, data.heading])
+
             ##Convert XY
             point = [gps.lat, gps.lon]
             xp, yp = xyval(point)
@@ -115,5 +123,12 @@ if __name__ == "__main__":
             elif d_f < math.radians(-35):
                 d_f = math.radians(-35)
 
+            if indexval == len(path)-1:
+                break
+
     except KeyboardInterrupt:
         hardware_controller.shutdown()
+
+    with open(f"TyroneResults/{gps_results_file}.txt", "w+") as file:
+        for 
+    with open(f"TyroneResults/{starget_results_file}.txt", "w+") as file:
