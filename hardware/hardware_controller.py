@@ -97,6 +97,7 @@ class HardwareController:
         # Speed
         self._measured_speed = 0.
         self._speed_set_point = 0.
+        self._stop = False
 
         # Speed PID Controller
         self._prev_error_speed = 0.
@@ -206,39 +207,52 @@ class HardwareController:
     # SPEED
     def correct_speed(self):
         self._update_speed()
-        error = self._speed_set_point - self._measured_speed
-        self._cumulative_error_speed += error
-        p_term = error * self.p_gain_speed
-        d_term = (error - self._prev_error_speed) * self.d_gain_speed
-        i_term = self._cumulative_error_speed * self.i_gain_speed
-        self._prev_error_speed = error
-        # TODO: Improve control algorithm
-        output = p_term + d_term + i_term
-        self._increment_speed_output_voltage(increment=output)
+        if not self._stop:
+            error = self._speed_set_point - self._measured_speed
+            self._cumulative_error_speed += error
+            p_term = error * self.p_gain_speed
+            d_term = (error - self._prev_error_speed) * self.d_gain_speed
+            i_term = self._cumulative_error_speed * self.i_gain_speed
+            self._prev_error_speed = error
+            # TODO: Improve control algorithm
+            output = p_term + d_term + i_term
+            self._increment_speed_output_voltage(increment=output)
 
     def set_speed(self, speed: float):
-        self._speed_set_point = speed
-        if self._speed_set_point > 0:
+        self._stop = False
+        if speed > 0:
+            self._speed_set_point = speed
             if not self.driving_forward:
                 self.direction_forward()
-        elif self._speed_set_point < 0:
+        elif speed < 0:
+            self._speed_set_point = abs(speed)
             if self.driving_forward:
                 self.direction_reverse()
+        elif speed == 0:
+            self.stop()
+
+    def stop(self):
+        self._stop = True
+        self.steer_dac.value = 0
+        if self.driving_forward:
+            self.direction_reverse()
         else:
-            if self._measured_speed > 0:
-                self.direction_reverse()
-            elif self._measured_speed < 0:
-                self.direction_forward()
+            self.direction_forward()
 
     def get_speed(self) -> float:
-        return self._measured_speed
+        if self.driving_forward:
+            direction = 1
+        else:
+            direction = -1
+        return self._measured_speed * direction
 
     def _update_speed(self):
         self._measured_speed = self._gps.two_dim_speed
 
     def _increment_speed_output_voltage(self, increment):
         new_voltage = max(self._speed_output_voltage + increment, 0)
-        self._speed_output_voltage = min(new_voltage, self._max_speed_voltage)
+        # self._speed_output_voltage = min(new_voltage, self._max_speed_voltage)
+        self._speed_output_voltage = sorted([0, new_voltage, self._max_speed_voltage])[1]
         self.speed_dac.value = int(round(self._speed_output_voltage / 5 * 65535))
 
     def increase_max_speed_voltage(self, new_max: float):

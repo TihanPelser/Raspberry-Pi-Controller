@@ -3,15 +3,14 @@ import queue
 import threading
 from collections import deque
 from typing import Optional
-from vincenty import vincenty as vc
-# from geopy.distance import great_circle as gc
 
 
 class UBX:
-    def __init__(self, port: str, baud: int, origin: tuple, gps_log: Optional[str] = None):
+    def __init__(self, port: str, baud: int):
         self.device = serial.Serial(port=port, baudrate=baud)
         self.last_message = None
         self.queue = queue.Queue()
+        self.is_reading = False
 
         # Threading
         self._read_thread = None
@@ -19,14 +18,9 @@ class UBX:
 
         # Position data
         self.two_dim_speed = 0.
-        self.x_pos = 0.
-        self.y_pos = 0.
         self.heading = 0.
         self.lat = 0.
         self.lon = 0
-
-        # (Lat, Long)
-        self.origin = origin
 
         # Moving average data
         self._speed_list = deque(maxlen=3)
@@ -34,27 +28,15 @@ class UBX:
         self._lat_list = deque(maxlen=3)
         self._lon_list = deque(maxlen=3)
 
-        if gps_log is not None:
-            self.data_log = []
-            self.logging = True
-            self.log_file = gps_log
-        else:
-            self.data_log = []
-            self.logging = False
-            self.log_file = ""
-
     def start_reading(self):
         self._stop_threads = False
         self._read_thread = threading.Thread(target=self.read_messages, name="gps", daemon=True)
         self._read_thread.start()
+        self.is_reading = True
 
     def stop_reading(self):
         self._stop_threads = True
-        if self.logging:
-            with open(f"{self.log_file}.txt", "w+") as log_file:
-                log_file.write("Lat, Long, Heading, 2D Speed, X, Y")
-                for data_point in self.data_log:
-                    log_file.write(data_point + "\n")
+        self.is_reading = False
 
     def _update_average_speed(self, speed):
         # Convert to m/s
@@ -124,9 +106,6 @@ class UBX:
                         converted_msg = self.parse_message(msg)
                         self.last_message = converted_msg
                         self._update_all()
-                        self.data_log.append([self.lat, self.lon, self.heading, self.two_dim_speed, self.x_pos,
-                                              self.y_pos])
-                        # self.queue.put(converted_msg)
 
         except KeyboardInterrupt:
             print("Done reading")
@@ -184,14 +163,11 @@ class UBX:
             }
             return converted
 
-    def set_origin(self, point: Optional[tuple] = None):
-        if point is not None:
-            self.origin = point
-        else:
-            self.origin = (self.lat, self.lon)
-
-    def get_point(self):
-        return [self.lat, self.lon]
+    # def set_origin(self, point: Optional[tuple] = None):
+    #     if point is not None:
+    #         self.origin = point
+    #     else:
+    #         self.origin = (self.lat, self.lon)
 
     def get_current_data(self):
         return [self.lat, self.lon, self.heading, self.two_dim_speed]

@@ -23,10 +23,9 @@ if __name__ == "__main__":
     # else:
     #     gps_log = None
 
-    gps_log = None
     input_path = "sample-path"
 
-    gps = UBX(port="/dev/ttyACM0", baud=9600, origin=(0, 0), gps_log=gps_log)
+    gps = UBX(port="/dev/ttyACM0", baud=9600)
     # I2C Setup
     i2c = busio.I2C(board.SCL, board.SDA)
 
