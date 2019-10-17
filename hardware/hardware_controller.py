@@ -154,6 +154,7 @@ class HardwareController:
         self.speed_dac.value = 0
         self.steer_dac.value = 0
         self.center()
+        print("Shutdown complete!")
 
     def start_control(self):
         if self._gps.is_reading is False:

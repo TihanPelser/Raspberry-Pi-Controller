@@ -37,7 +37,7 @@ def calc_distance_and_azimuth(point1: np.ndarray, point2: np.ndarray):
     lat_1, long_1 = point1
     lat_2, long_2 = point2
     azimuth_forward, azimuth_backward, distance = geod.inv(long_1, lat_1, long_2, lat_2)
-    return distance, azimuth_forward
+    return distance, np.deg2rad(convert_heading(azimuth_forward))
 
 
 def calculate_distance(point1: np.ndarray, point2: np.ndarray):
@@ -79,8 +79,8 @@ def convert_path(origin: np.ndarray, path: np.ndarray):
     # return np.array(path_xy)
     path_xy = []
     for point in path:
-        dist, azi = calc_distance_and_azimuth(point1=origin, point2=point)
-        point_heading = np.deg2rad(convert_heading(azi))
+        dist, point_heading = calc_distance_and_azimuth(point1=origin, point2=point)
+        # point_heading = np.deg2rad(convert_heading(azi))
         x = dist * np.cos(point_heading)
         y = dist * np.sin(point_heading)
         path_xy.append([x, y])

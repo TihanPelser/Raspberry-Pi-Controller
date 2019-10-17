@@ -59,14 +59,17 @@ if __name__ == "__main__":
     steering_data = []
     gps_data = []
     xy_list = []
-
+    step = 0
     try:
         hardware_controller.startup()
         hardware_controller.start_control()
         print("Waiting for gps")
         time.sleep(2)
         print("Starting run")
+        hardware_controller.set_speed(SPEED)
         while True:
+            step += 1
+            print(f"Step: {step}")
             time.sleep(0.05)
             # gps_data = gps.get_current_data()
             gps_data.append([gps.lat, gps.long, gps.speed, gps.heading])
@@ -90,7 +93,8 @@ if __name__ == "__main__":
 
             #finding smallest distance between point and centre of gravity
             pt = [x, y]
-            lkdist = int(50*(velocity*3.6))
+            # lkdist = int(50*(velocity*3.6))
+            lkdist = 100
             pathc = path[indexval:(indexval+lkdist)]
             distvals = []
             indexval = indexval + 1
@@ -149,7 +153,7 @@ if __name__ == "__main__":
                 break
 
     except KeyboardInterrupt:
-        hardware_controller.shutdown()
+        hardware_controller.stop_control()
 
     print("Saving data")
     with open(f"TyroneResults/{RUN_NAME}_gps.txt", "w+") as file:

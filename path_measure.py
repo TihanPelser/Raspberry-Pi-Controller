@@ -2,9 +2,9 @@ from gps_interface.ublox_interface import UBX
 import sys
 
 if __name__ == "__main__":
-    LOG_FILE = sys.argv[1] + ".txt"
+    LOG_FILE = sys.argv[1]
 
-    gps = UBX(port="/dev/tty/ACM0", baud=9600)
+    gps = UBX()
 
     gps.start_reading()
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
             break
         else:
             continue
-    with open(f"paths/{LOG_FILE}", "w+") as file:
+    with open(f"paths/{LOG_FILE}.txt", "w+") as file:
         for point in points:
             file.write(f"{point[0]},{point[1]}\n")
 
