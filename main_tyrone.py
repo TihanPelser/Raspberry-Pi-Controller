@@ -63,7 +63,7 @@ if __name__ == "__main__":
             steering.append(d_f)
 
             ##Convert XY
-            point = [gps.lat, gps.lon]
+            point = [gps.lat, gps.long]
             xp, yp = xyval(point)
 
             x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
