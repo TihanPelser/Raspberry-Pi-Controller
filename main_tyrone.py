@@ -54,23 +54,21 @@ if __name__ == "__main__":
         path.append((i, functy))
 
     ##Find initial closest point
-    point = [gps.lat, gps.long]
-    xp, yp = xyval(point)
+    #point = [gps.lat, gps.long]
+    #xp, yp = xyval(point)
+    #x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
+    #y = round(-xp * np.sin(theta) + yp * np.cos(theta), 15)
+    #distvals = []
+    #pt = [x, y]
+    #for i in path:
+    #    ptp = i
+    #    distvals.append(distance(pt, ptp))
+    #indexval = distvals.index(min(distvals))
+    #xlst = x
+    #ylst = y
+    #heading = 0
 
-    x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
-    y = round(-xp * np.sin(theta) + yp * np.cos(theta), 15)
-
-    distvals = []
-    pt = [x, y]
-    for i in path:
-        ptp = i
-        distvals.append(distance(pt, ptp))
-    indexval = distvals.index(min(distvals))
     k = 5
-
-    xlst = x
-    ylst = y
-    heading = 0
 
     steering_data = []
     gps_data = []
@@ -102,9 +100,12 @@ if __name__ == "__main__":
             xy_list.append([x, y])
 
             ##Adjust heading
-            heading = np.arctan2((y-ylst), (x, xlst))
+            #heading = np.arctan2((y-ylst), (x - xlst))
+            #xlst = x
+            #ylst = y
 
-            #heading = gps.heading - theta
+            heading = gps.heading - theta - 90
+            heading = math.radians(heading)
             heading = heading%math.radians(360)
             if heading > math.radians(180):
                 heading = heading - math.radians(360)
@@ -112,14 +113,14 @@ if __name__ == "__main__":
             #finding smallest distance between point and centre of gravity
             pt = [x, y]
             # lkdist = int(50*(velocity*3.6))
-            lkdist = 100
-            pathc = path[indexval:(indexval+lkdist)]
+            #lkdist = 100
+            #pathc = path[indexval:(indexval+lkdist)]
             distvals = []
-            for i in pathc:
+            for i in path:
                 ptp = i
                 distvals.append(distance(pt, ptp))
-            mind = distvals.index(min(distvals))        
-            indexval = mind + indexval
+            indexval = distvals.index(min(distvals))
+            #indexval = mind + indexval
             if indexval>(len(path)-1):
                 indexval = (len(path)-1)
             derr = np.sqrt(min(distvals))
