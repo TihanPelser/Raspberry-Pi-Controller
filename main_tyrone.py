@@ -102,11 +102,12 @@ if __name__ == "__main__":
             xy_list.append([x, y])
 
             ##Adjust heading
-            heading = np.arctan2((y-ylst), (x - xlst))
-            xlst = x
-            ylst = y
-            # heading = math.radians(heading)
-            # heading = gps.heading - theta
+            # heading = np.arctan2((y-ylst), (x - xlst))
+            # xlst = x
+            # ylst = y
+            heading = gps.heading - theta
+            heading = math.radians(heading)
+
             heading = heading%math.radians(360)
             if heading > math.radians(180):
                 heading = heading - math.radians(360)

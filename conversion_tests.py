@@ -6,7 +6,7 @@ import time
 
 if __name__ == "__main__":
 
-    gps = UBX()
+    gps = UBX(port="/dev/ttyACM1")
     gps.start_reading()
     time.sleep(2)
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         print("Done")
 
     with open("TihanResults/conversion_test_points.txt", "w+") as file:
-        file.write(origin + "\n")
-        file.write(point1 + "\n")
+        file.write(str(origin) + "\n")
+        file.write(str(point1) + "\n")
         for point in results:
             file.write(str(point) + "\n")
