@@ -12,6 +12,7 @@ if __name__ == "__main__":
 
     origin = None
     point1 = None
+    results = []
 
     while True:
         user_input = input("Enter to set origin:")
@@ -45,7 +46,14 @@ if __name__ == "__main__":
             d_to_p1 = round(d_to_p1, 4)
             head_to_p1 = round(head_to_p1, 4)
             head_to_orig = round(head_to_orig, 4)
+            results.append([gps.lat, gps.long, heading, converted_head, d_to_orig, d_to_p1, head_to_orig, head_to_p1, head_er_orig, head_er_p1])
             print("\r")
             print(f"\r{heading}\t{converted_head}\t{d_to_orig}\t{d_to_p1}\t{head_to_orig}\t{head_to_p1}\t{head_er_orig}\t{head_er_p1}")
     except KeyboardInterrupt:
-        exit(0)
+        print("Done")
+
+    with open("TihanResults/conversion_test_points.txt", "w+") as file:
+        file.write(origin + "\n")
+        file.write(point1 + "\n")
+        for point in results:
+            file.write(str(point) + "\n")

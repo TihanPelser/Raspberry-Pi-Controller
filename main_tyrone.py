@@ -102,9 +102,11 @@ if __name__ == "__main__":
             xy_list.append([x, y])
 
             ##Adjust heading
-            heading = np.arctan2((y-ylst), (x, xlst))
-
-            #heading = gps.heading - theta
+            heading = np.arctan2((y-ylst), (x - xlst))
+            xlst = x
+            ylst = y
+            # heading = math.radians(heading)
+            # heading = gps.heading - theta
             heading = heading%math.radians(360)
             if heading > math.radians(180):
                 heading = heading - math.radians(360)
@@ -112,14 +114,14 @@ if __name__ == "__main__":
             #finding smallest distance between point and centre of gravity
             pt = [x, y]
             # lkdist = int(50*(velocity*3.6))
-            lkdist = 100
-            pathc = path[indexval:(indexval+lkdist)]
+            # lkdist = 100
+            # pathc = path[indexval:(indexval+lkdist)]
             distvals = []
-            for i in pathc:
+            for i in path:
                 ptp = i
                 distvals.append(distance(pt, ptp))
-            mind = distvals.index(min(distvals))        
-            indexval = mind + indexval
+            indexval = distvals.index(min(distvals))
+            # indexval = mind + indexval
             if indexval>(len(path)-1):
                 indexval = (len(path)-1)
             derr = np.sqrt(min(distvals))
