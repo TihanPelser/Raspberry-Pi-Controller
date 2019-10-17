@@ -76,7 +76,7 @@ class HardwareController:
         self._cumulative_error_speed = 0.
         self.p_gain_speed = 0.01
         self.d_gain_speed = 1.
-        self.i_gain_speed = 0.000000000
+        self.i_gain_speed = 0.
         self._speed_output_voltage = 0
         self._max_speed_voltage = 1.6
         self.driving_forward = True
@@ -98,7 +98,7 @@ class HardwareController:
         # Steering PID Controller
         # Not implemented
         self.p_gain_steer = 15.
-        self.d_gain_steer = 0
+        self.d_gain_steer = 0.
         self.i_gain_steer = .2
         self._prev_error_steer = 0.
         self._cumulative_error_steer = 0.
