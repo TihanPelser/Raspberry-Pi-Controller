@@ -74,17 +74,17 @@ class HardwareController:
         # Speed PID Controller
         self._prev_error_speed = 0.
         self._cumulative_error_speed = 0.
-        self.p_gain_speed = 10
-        self.d_gain_speed = 0.001
-        self.i_gain_speed = 0.01
+        self.p_gain_speed = 0.01
+        self.d_gain_speed = 1.
+        self.i_gain_speed = 0.000000000
         self._speed_output_voltage = 0
-        self._max_speed_voltage = 1.2
+        self._max_speed_voltage = 1.6
         self.driving_forward = True
 
         # Steering
         # 0 Degree Steer = 2.582V
         self._steer_output_voltage = 0.
-        self._max_steer_voltage = 4.
+        self._max_steer_voltage = 3.5
         self._min_steer_voltage = 0.05
         self._steering_angle_set_point = 0.
         self._current_steering_angle = 0.
@@ -97,9 +97,9 @@ class HardwareController:
 
         # Steering PID Controller
         # Not implemented
-        self.p_gain_steer = 25.
-        self.d_gain_steer = 5.
-        self.i_gain_steer = .8
+        self.p_gain_steer = 15.
+        self.d_gain_steer = 0
+        self.i_gain_steer = .2
         self._prev_error_steer = 0.
         self._cumulative_error_steer = 0.
 
@@ -156,7 +156,7 @@ class HardwareController:
         self.center()
 
     def start_control(self):
-        if self._gps._read_thread is None:
+        if self._gps.is_reading is False:
             print("GPS not reading!")
             return
         print("Starting hardware control...")
@@ -169,9 +169,10 @@ class HardwareController:
     def stop_control(self):
         print("Stopping hardware control...")
         self.stop()
-        while self._measured_speed > 0.3:
-            continue
+        print("Straightening steering...")
+        self.set_steering_angle(0)
         self._stop_threads = True
+
         self.shutdown()
 
     def _control(self):
@@ -182,16 +183,18 @@ class HardwareController:
     # SPEED
     def correct_speed(self):
         self._update_speed()
-        if not self._stop:
-            error = self._speed_set_point - self._measured_speed
-            self._cumulative_error_speed += error
-            p_term = error * self.p_gain_speed
-            d_term = (error - self._prev_error_speed) * self.d_gain_speed
-            i_term = self._cumulative_error_speed * self.i_gain_speed
-            self._prev_error_speed = error
-            # TODO: Improve control algorithm
-            output = p_term + d_term + i_term
-            self._increment_speed_output_voltage(increment=output)
+        if self._stop:
+            self.speed_dac.value = 0
+            return
+        error = self._speed_set_point - self._measured_speed
+        self._cumulative_error_speed += error
+        p_term = error * self.p_gain_speed
+        d_term = (error - self._prev_error_speed) * self.d_gain_speed
+        i_term = self._cumulative_error_speed * self.i_gain_speed
+        self._prev_error_speed = error
+        # TODO: Improve control algorithm
+        output = p_term + d_term + i_term
+        self._increment_speed_output_voltage(increment=output)
 
     def set_speed(self, speed: float):
         self._stop = False
@@ -208,7 +211,6 @@ class HardwareController:
 
     def stop(self):
         self._stop = True
-        self.steer_dac.value = 0
         if self.driving_forward:
             self.direction_reverse()
         else:
