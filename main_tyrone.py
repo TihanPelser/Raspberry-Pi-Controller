@@ -64,7 +64,7 @@ if __name__ == "__main__":
     pt = [x, y]
     for i in path:
         ptp = i
-        distvals.append(distance(, ptp))
+        distvals.append(distance(pt, ptp))
     indexval = distvals.index(min(distvals))
     k = 5
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
             ##Adjust heading
             heading = np.arctan2((y-ylst), (x, xlst))
 
-            heading = gps.heading - theta
+            #heading = gps.heading - theta
             heading = heading%math.radians(360)
             if heading > math.radians(180):
                 heading = heading - math.radians(360)
