@@ -20,10 +20,10 @@ def xyval(pt):
 def distance(p1, p2):
     return ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 
-origin = [-25.75298435, 28.22771581]
+origin = [-25.75297157, 28.22773575]
 x0, y0 = xyval(origin)
 
-axishift = [-25.75319658, 28.22755953]
+axishift = [-25.75321249, 28.22760006]
 xst, yst = xyval(axishift)
 
 theta = np.arctan2((yst - y0), (xst - x0))
@@ -53,8 +53,24 @@ if __name__ == "__main__":
         pathy.append(functy)    
         path.append((i, functy))
 
-    indexval = 0
+    ##Find initial closest point
+    point = [gps.lat, gps.long]
+    xp, yp = xyval(point)
+
+    x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
+    y = round(-xp * np.sin(theta) + yp * np.cos(theta), 15)
+
+    distvals = []
+    pt = [x, y]
+    for i in path:
+        ptp = i
+        distvals.append(distance(pt, ptp))
+    indexval = distvals.index(min(distvals))
     k = 5
+
+    xlst = x
+    ylst = y
+    heading = 0
 
     steering_data = []
     gps_data = []
@@ -72,7 +88,7 @@ if __name__ == "__main__":
             print(f"Step: {step}")
             time.sleep(0.05)
             # gps_data = gps.get_current_data()
-            gps_data.append([gps.lat, gps.long, gps.speed, gps.heading])
+            gps_data.append([gps.lat, gps.long, gps.speed, gps.heading, heading])
             st_data = hardware_controller.get_current_data()
             steering_data.append([st_data.steering_angle_set_point, st_data.current_steering_angle])
             velocity = gps.speed
@@ -86,7 +102,9 @@ if __name__ == "__main__":
             xy_list.append([x, y])
 
             ##Adjust heading
-            heading = gps.heading - theta
+            heading = np.arctan2((y-ylst), (x, xlst))
+
+            #heading = gps.heading - theta
             heading = heading%math.radians(360)
             if heading > math.radians(180):
                 heading = heading - math.radians(360)
@@ -97,12 +115,11 @@ if __name__ == "__main__":
             lkdist = 100
             pathc = path[indexval:(indexval+lkdist)]
             distvals = []
-            indexval = indexval + 1
             for i in pathc:
                 ptp = i
                 distvals.append(distance(pt, ptp))
             mind = distvals.index(min(distvals))        
-            indexval = mind + indexval + 1
+            indexval = mind + indexval
             if indexval>(len(path)-1):
                 indexval = (len(path)-1)
             derr = np.sqrt(min(distvals))
