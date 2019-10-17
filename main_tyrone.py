@@ -5,7 +5,10 @@ from gps_interface.ublox_interface import UBX
 import sys, argparse
 from geopy.distance import great_circle as gc
 import numpy as np
+import time
+import math
 
+SPEED = 0.
 
 def xyval(pt):
     ycng = [pt[0], origin[1]]
@@ -30,8 +33,12 @@ ys = round(-xst * np.sin(theta) + yst * np.cos(theta), 15)
 
 if __name__ == "__main__":
 
-    gps_results_file = sys.argv[1]
-    starget_results_file = sys.argv[1]
+    RUN_NAME = sys.argv[1]
+
+    gps = UBX()
+    gps.start_reading()
+
+    hardware_controller = HardwareController(gps)
 
     ##Path
     pathx = np.arange(0, 35, 0.001)
@@ -49,20 +56,23 @@ if __name__ == "__main__":
     indexval = 0
     k = 5
 
+    steering_data = []
+    gps_data = []
+    xy_list = []
+
     try:
         hardware_controller.startup()
         hardware_controller.start_control()
-        postiton_data = []
-        steering_data = []
+        print("Waiting for gps")
+        time.sleep(2)
+        print("Starting run")
         while True:
             time.sleep(0.05)
-            gps_data = gps.get_current_data()
+            # gps_data = gps.get_current_data()
             gps_data.append([gps.lat, gps.long, gps.speed, gps.heading])
             st_data = hardware_controller.get_current_data()
-            steering_data.append(st_data.steering_angle_set_point, st_data.current_steering_angle)
-
-            steering.append(d_f)
-
+            steering_data.append([st_data.steering_angle_set_point, st_data.current_steering_angle])
+            velocity = gps.speed
             ##Convert XY
             point = [gps.lat, gps.long]
             xp, yp = xyval(point)
@@ -70,10 +80,12 @@ if __name__ == "__main__":
             x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
             y = round(-xp * np.sin(theta) + yp * np.cos(theta), 15)
 
+            xy_list.append([x, y])
+
             ##Adjust heading
             heading = gps.heading - theta
             heading = heading%math.radians(360)
-            if heading>math.radians(180):
+            if heading > math.radians(180):
                 heading = heading - math.radians(360)
 
             #finding smallest distance between point and centre of gravity
@@ -95,39 +107,39 @@ if __name__ == "__main__":
             thetap = np.arctan((pathy[indexval] - pathy[indexval-1])/(pathx[indexval] - pathx[indexval-1]))
 
             #angle between steering and path
-            if pathx[indexval]<pathx[indexval-1]:
+            if pathx[indexval] < pathx[indexval-1]:
                 thetap = thetap - math.radians(180)
-            error = -(heading - thetap)%math.radians(360)
-            if error>math.radians(180):
+            error = - (heading - thetap) % math.radians(360)
+            if error > math.radians(180):
                 error = error - math.radians(360)
 
             #steering angle adjustment
             M = np.tan(thetap)
             ysam = M*(x - pathx[indexval]) + pathy[indexval]
             if pathx[indexval]>pathx[indexval-1]:
-                if math.radians(-90) < thetac < math.radians(90):
+                if math.radians(-90) < thetap < math.radians(90):
                     if y>ysam:
                         derr = -derr
-                if math.radians(-90) > thetac > math.radians(90):
+                if math.radians(-90) > thetap > math.radians(90):
                     if y<ysam:
                         derr = -derr
             elif pathx[indexval]<pathx[indexval-1]:
-                if math.radians(-90) < thetac < math.radians(90):
+                if math.radians(-90) < thetap < math.radians(90):
                     if y<ysam:
                         derr = -derr
-                if math.radians(-90) > thetac > math.radians(90):
+                if math.radians(-90) > thetap > math.radians(90):
                     if y>ysam:
                         derr = -derr
 
             if -0.005 < derr < 0.005:
                 d_f = error
             else:
-                d_f = error + np.arctan(k*derr/gps.speed)
+                d_f = error + np.arctan(k*derr/velocity)
                 
-            if d_f > math.radians(35):
-                d_f = math.radians(35)
-            elif d_f < math.radians(-35):
-                d_f = math.radians(-35)
+            if d_f > math.radians(20):
+                d_f = math.radians(20)
+            elif d_f < math.radians(-20):
+                d_f = math.radians(-20)
 
             d_f = math.degrees(d_f)
 
@@ -139,9 +151,13 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         hardware_controller.shutdown()
 
-    with open(f"TyroneResults/{gps_results_file}.txt", "w+") as file:
-        for points in postion_data:
-            output.write(str(points) + "\n")
-    with open(f"TyroneResults/{steering_results_file}.txt", "w+") as file:
+    print("Saving data")
+    with open(f"TyroneResults/{RUN_NAME}_gps.txt", "w+") as file:
+        for points in gps_data:
+            file.write(f"{points[0]},{points[1]},{points[2]},{points[3]}\n")
+    with open(f"TyroneResults/{RUN_NAME}_steering.txt", "w+") as file:
         for f in steering_data:
-            output.write(str(f) + "/n")
+            file.write(f"{f[0]},{f[1]}\n")
+    with open(f"TyroneResults/{RUN_NAME}_xy.txt", "w+") as file:
+        for points in xy_list:
+            file.write(f"{points[0]},{points[1]}\n")
