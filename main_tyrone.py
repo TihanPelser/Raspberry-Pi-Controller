@@ -55,6 +55,7 @@ if __name__ == "__main__":
         postiton_data = []
         steering_data = []
         while True:
+            time.sleep(0.05)
             gps_data = gps.get_current_data()
             gps_data.append([gps.lat, gps.long, gps.speed, gps.heading])
             st_data = hardware_controller.get_current_data()
