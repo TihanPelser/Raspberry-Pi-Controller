@@ -17,10 +17,10 @@ def xyval(pt):
 def distance(p1, p2):
     return ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 
-origin = [-25.7530795, 28.2275646]
+origin = [-25.75298435, 28.22771581]
 x0, y0 = xyval(origin)
 
-axishift = [-25.75328621, 28.22747239]
+axishift = [-25.75319658, 28.22755953]
 xst, yst = xyval(axishift)
 
 theta = np.arctan2((yst - y0), (xst - x0))
@@ -52,10 +52,15 @@ if __name__ == "__main__":
     try:
         hardware_controller.startup()
         hardware_controller.start_control()
-        gps_data = []
+        postiton_data = []
+        steering_data = []
         while True:
-            data = gps.get_current_data()
-            gps_data.append([data.lat, data.lon, data.speed, data.heading])
+            gps_data = gps.get_current_data()
+            gps_data.append([gps.lat, gps.long, gps.speed, gps.heading])
+            st_data = hardware_controller.get_current_data()
+            steering_data.append(st_data.steering_angle_set_point, st_data.current_steering_angle)
+
+            steering.append(d_f)
 
             ##Convert XY
             point = [gps.lat, gps.lon]
@@ -123,6 +128,10 @@ if __name__ == "__main__":
             elif d_f < math.radians(-35):
                 d_f = math.radians(-35)
 
+            d_f = math.degrees(d_f)
+
+            hardware_controller.set_steering_angle(d_f)
+
             if indexval == len(path)-1:
                 break
 
@@ -130,5 +139,8 @@ if __name__ == "__main__":
         hardware_controller.shutdown()
 
     with open(f"TyroneResults/{gps_results_file}.txt", "w+") as file:
-        for 
-    with open(f"TyroneResults/{starget_results_file}.txt", "w+") as file:
+        for points in postion_data:
+            output.write(str(points) + "\n")
+    with open(f"TyroneResults/{steering_results_file}.txt", "w+") as file:
+        for f in steering_data:
+            output.write(str(f) + "/n")
