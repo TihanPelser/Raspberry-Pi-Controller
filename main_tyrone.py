@@ -9,7 +9,7 @@ import time
 import math
 from typing import Any
 
-SPEED = 0.
+SPEED = 1.5
 
 def distance(p1, p2):
     return ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
@@ -17,8 +17,8 @@ def distance(p1, p2):
 def xyval(pt):
     xcng = [pt[0], ref[1]]
     ycng = [ref[0], pt[1]]
-    x = abs(vc(ref, xcng).meters)
-    y = abs(vc(ref, ycng).meters)
+    x = abs(gc(ref, xcng).meters)
+    y = abs(gc(ref, ycng).meters)
     return x, y
 
 ref = [-25.74551249, 28.24783167]
@@ -102,11 +102,12 @@ if __name__ == "__main__":
     xy_list = []
     step = 0
     try:
-        hardware_controller.startup()
+        # hardware_controller.startup()
         hardware_controller.start_control()
         print("Waiting for gps")
         time.sleep(2)
         print("Starting run")
+        time.sleep(2)
         hardware_controller.set_speed(SPEED)
         while True:
             step += 1
@@ -144,8 +145,9 @@ if __name__ == "__main__":
             up = True                                                   ##Change to false if error occurs in line 119 - 137
 
             if up == True:
-                pt = [z[0], z[1]]
-                lkdist = int(50 * (velocity * 3.6))
+                pt = [x, y]
+                # lkdist = int(50 * (velocity * 3.6))
+                lkdist = 75
                 if indexval - lkdist < 0:
                     pathc = path[0:(indexval + lkdist)]
                 elif indexval + lkdist > len(path) - 1:
@@ -164,7 +166,7 @@ if __name__ == "__main__":
                     indexval = indexval - lkdist + mind
 
             if up == False:
-                pt = [z[0], z[1]]
+                pt = [x, y]
                 path = np.column_stack((pathx, pathy))
                 for i in path:
                     ptp = [i[0], i[1]]
@@ -187,19 +189,19 @@ if __name__ == "__main__":
             M = np.tan(thetap)
             ysam = M*(x - pathx[indexval]) + pathy[indexval]
             if math.radians(-90) < thetap < math.radians(90):
-                if z[1] > ysam:
+                if y > ysam:
                     derr = -derr
             if math.radians(90) < thetap < math.radians(180):
-                if z[1] < ysam:
+                if y < ysam:
                     derr = -derr
             if math.radians(-90) > thetap > math.radians(-180):
-                if z[1] < ysam:
+                if y < ysam:
                     derr = -derr
 
             if -0.005 < derr < 0.005:
                 d_f = error
             else:
-                d_f = error + np.arctan(k * derr / z[3])
+                d_f = error + np.arctan(k * derr / velocity)
                 
             if d_f > math.radians(20):
                 d_f = math.radians(20)
@@ -210,7 +212,7 @@ if __name__ == "__main__":
 
             hardware_controller.set_steering_angle(d_f)
 
-            if indexval <= len(path)-10:
+            if indexval >= len(path)-10:
                 break
 
     except KeyboardInterrupt:
