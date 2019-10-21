@@ -12,7 +12,7 @@ import time
 from controller.DQNController import DQNController
 from controller.error_calculations import calculate_errors
 
-INPUT_PATH_FILE = "paths/straight_test.txt"
+INPUT_PATH_FILE = "paths/lc_path_straight.txt"
 SPEED_SET_POINT = 0
 WAY_POINT_THRESHOLD = 0.5
 
@@ -40,11 +40,11 @@ if __name__ == "__main__":
 
     hardware_controller = HardwareController(gps=gps)
 
-    path_controller = DQNController(model_file="controller/models/COMPLEX_ARCH_1_IN_5_OUT.h5")
+    path_controller = DQNController(model_file="controller/models/2_IN_5_OUT_PATH_FINAL.h5")
     print("Waiting for GPS signal...")
     time.sleep(2)
     origin = np.array([gps.lat, gps.long])
-    path = [[gps.lat, gps.long]] + path
+    path = np.vstack([origin, path])
     path_xy = xy.convert_path(origin=origin, path=path)
 
     gps_results = []
@@ -53,11 +53,10 @@ if __name__ == "__main__":
     dqn_results = []
 
     end_reached = False
-    current_way_point_index = 0
-    current_way_point_coords = path[current_way_point_index]
     try:
         hardware_controller.start_control()
-
+        hardware_controller.set_speed(1.5)
+        time.sleep(1.5)
         # Speed Override:
         # speed_volt = 0.8
         # hardware_controller.speed_dac.value = int(round(speed_volt/5) * 65535)

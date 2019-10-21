@@ -27,9 +27,9 @@ class UBX:
 
         # Moving average data
         self._speed_list = deque(maxlen=1)
-        self._heading_list = deque(maxlen=3)
-        self._lat_list = deque(maxlen=3)
-        self._long_list = deque(maxlen=3)
+        self._heading_list = deque(maxlen=1)
+        self._lat_list = deque(maxlen=1)
+        self._long_list = deque(maxlen=1)
 
     def start_reading(self):
         self._stop_threads = False

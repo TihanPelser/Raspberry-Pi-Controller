@@ -4,19 +4,9 @@ import numpy as np
 
 if __name__ == "__main__":
 
-    origin = np.array([-25.753004, 28.2276943])
-    point1 = np.array([-25.75309977, 28.22762397])
+    # origin = np.array([-25.753004, 28.2276943])
+    # point1 = np.array([-25.75309977, 28.22762397])
 
-    lat_list = []
-    long_list = []
-    distance_list = []
-    heading_list = []
-    x_list = []
-    y_list = []
-    heading_check_x = []
-    heading_check_y = []
-    gps_heading_list = []
-    converted_head_list =[]
 
     with open("TihanResults/conversion_test_points.txt", "r") as file:
         for line in file:

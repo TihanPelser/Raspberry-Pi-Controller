@@ -9,7 +9,7 @@ class DQNController:
         except FileNotFoundError:
             print("Specified model file not found!")
 
-        self.action_mappings = [10, 5, 0, -5, -10]
+        self.action_mappings = [-10, -5, 0, 5, 10]
 
     def act(self, state: np.ndarray):
         q_values = self.model.predict(state)

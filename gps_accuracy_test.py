@@ -14,8 +14,26 @@ ax1 = fig.add_subplot(1, 1, 1)
 
 origin = None
 
+# Circular
+# path_lat = np.array([[-25.7453416,28.24748063333333],
+#                 [-25.745242466666664,28.247478166666667],
+#                 [-25.745251666666665,28.2475962],
+#                 [-25.745364,28.247632566666667],
+#                 [-25.745356666666666,28.247524999999996]])
+path_xy_measured = None
+path_lat = np.array([
+    [-25.745310766666666,28.247740966666665],
+    [-25.7453426,28.2476613],
+    [-25.745382466666666,28.24757333333333],
+    [-25.745350799999997,28.247508433333333],
+    [-25.7453379,28.247407766666665]
+])
+
+
+
 def animate(i):
     global origin
+    global path_xy_measured
     print("plot" + str(i))
     graph_data = open('datapoints.txt', 'r').read()
     lines = graph_data.split('\n')
@@ -32,7 +50,9 @@ def animate(i):
     # print(path_lat_long)
     path = xy.convert_path(origin=origin, path=np.array(path_lat_long))
     ax1.clear()
-    ax1.scatter(path[:, 0], path[:, 1])
+    ax1.scatter(path[:, 0], path[:, 1], label="Current")
+    ax1.scatter(path_xy_measured[:, 0], path_xy_measured[:, 1], label="Measured")
+    ax1.legend()
 
 
 def gps_write():
@@ -43,6 +63,8 @@ def gps_write():
         time.sleep(1)
 
 
+
+
 if __name__ == "__main__":
     gps = UBX()
     gps.start_reading()
@@ -50,6 +72,9 @@ if __name__ == "__main__":
     print("starting")
     # global origin
     origin = np.array([gps.lat, gps.long])
+
+    path_xy_measured = xy.convert_path(origin=origin, path=path_lat)
+
     try:
         write_thread = threading.Thread(target=gps_write, name="gps_writer", daemon=True)
         write_thread.start()
