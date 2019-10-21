@@ -73,6 +73,15 @@ if __name__ == "__main__":
             converted_coords = xy.geo_to_xy(origin=origin, point=current_coords)
             lat_error, yaw_error = calculate_errors(vehicle_coords=converted_coords, vehicle_heading=current_heading,
                                                     preview_distance=2.78, path=path_xy)
+            distance_to_end, _ = xy.calc_distance_and_azimuth(point1=current_coords, point2=path[-1])
+
+            print("Current Data:")
+            print(f"Lat Err = {lat_error} || Yaw Err = {yaw_error} || Distance To End = {distance_to_end}")
+
+            if distance_to_end <= WAY_POINT_THRESHOLD:
+                print("End of path reached!")
+                end_reached = True
+                break
 
             if lat_error is None and yaw_error is None:
                 print("Errors too large")
