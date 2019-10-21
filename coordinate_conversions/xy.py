@@ -11,11 +11,10 @@ geod = pyproj.Geod(ellps='WGS84')
 
 # Not really used
 def geo_to_xy(origin: np.ndarray, point: np.ndarray):
-    delta_y = [point[0], origin[1]]
-    delta_x = [origin[0], point[1]]
-    x = gc(origin, delta_x).meters
-    y = gc(origin, delta_y).meters
-    return x, y
+    dist, theta = calc_distance_and_azimuth(point1=origin, point2=point)
+    x = dist * np.cos(theta)
+    y = dist * np.sin(theta)
+    return np.array([x, y])
 
 
 def haversine(point1: np.ndarray, point2: np.ndarray):

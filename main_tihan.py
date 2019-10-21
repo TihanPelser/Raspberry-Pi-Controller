@@ -10,6 +10,7 @@ import time
 
 # PATH CONTROLLER
 from controller.DQNController import DQNController
+from controller.error_calculations import calculate_errors
 
 INPUT_PATH_FILE = "paths/straight_test.txt"
 SPEED_SET_POINT = 0
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     print("Waiting for GPS signal...")
     time.sleep(2)
     origin = np.array([gps.lat, gps.long])
-
+    path = [[gps.lat, gps.long]] + path
     path_xy = xy.convert_path(origin=origin, path=path)
 
     gps_results = []
@@ -67,36 +68,34 @@ if __name__ == "__main__":
             gps_results.append(gps.get_current_data())
 
             # UPDATE PARAMETERS
-            current_heading = xy.convert_heading(gps.heading)
+            current_heading = np.deg2rad(xy.convert_heading(gps.heading))
             current_coords = np.array([gps.lat, gps.long])
-            distance_to_next, heading_to_next = xy.calc_distance_and_azimuth(point1=current_coords,
-                                                                             point2=current_way_point_coords)
-            calculation_results.append([current_heading, distance_to_next, heading_to_next])
+            converted_coords = xy.geo_to_xy(origin=origin, point=current_coords)
+            lat_error, yaw_error = calculate_errors(vehicle_coords=converted_coords, vehicle_heading=current_heading,
+                                                    preview_distance=2.78, path=path_xy)
 
-            # UPDATE WAY POINTS
-            if distance_to_next <= WAY_POINT_THRESHOLD:
-                print(f"Reached way point {current_way_point_index}")
-                current_way_point_index += 1
-                if current_way_point_index == len(path):
-                    end_reached = True
-                    break
-                else:
-                    current_way_point_coords = path[current_way_point_index]
+            if lat_error is None and yaw_error is None:
+                print("Errors too large")
+                break
 
-            heading_error = heading_to_next - current_heading
+            calculation_results.append([converted_coords, current_heading, lat_error, yaw_error])
 
-            input_state = np.array([heading_error / 120])
-            input_state = np.reshape(input_state, [1, 1])
+            input_state = np.array([lat_error / 2.5, yaw_error / np.pi])
 
-            dqn_action = path_controller.act(input_state)
+            dqn_action = path_controller.act(np.reshape(input_state, [1, 2]))
 
-            dqn_results.append([input_state[0, 0], dqn_action])
+            dqn_results.append([input_state, dqn_action])
 
             hardware_controller.set_steering_angle(dqn_action)
 
             time.sleep(0.1)
 
     except KeyboardInterrupt:
+        print("Manual stop...")
+        hardware_controller.stop_control()
+
+    finally:
+        print("Stopping control")
         hardware_controller.stop_control()
 
     print("Saving data...")
