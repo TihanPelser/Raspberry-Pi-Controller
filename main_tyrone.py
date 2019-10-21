@@ -134,7 +134,7 @@ if __name__ == "__main__":
             #xlst = x                                                  ##Use if GPS Heading is unreliable
             #ylst = y                                                  ##Use if GPS Heading is unreliable
 
-            heading = gps.heading - math.degrees(theta) - 90           ##Use if GPS Heading is reliable
+            heading = math.degrees(theta) - gps.heading - 90           ##Use if GPS Heading is reliable
             heading = math.radians(heading)                            ##Use if GPS Heading is reliable
             heading = heading%math.radians(360)                        ##Use if GPS Heading is reliable
             if heading > math.radians(180):                            ##Use if GPS Heading is reliable

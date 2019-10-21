@@ -71,7 +71,7 @@ if __name__ == "__main__":
             current_coords = np.array([gps.lat, gps.long])
             converted_coords = xy.geo_to_xy(origin=origin, point=current_coords)
             lat_error, yaw_error = calculate_errors(vehicle_coords=converted_coords, vehicle_heading=current_heading,
-                                                    preview_distance=2.78, path=path_xy)
+                                                    preview_distance=1.5, path=path_xy)
             distance_to_end, _ = xy.calc_distance_and_azimuth(point1=current_coords, point2=path[-1])
 
             print("Current Data:")
