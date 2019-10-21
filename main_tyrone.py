@@ -48,18 +48,23 @@ if __name__ == "__main__":
     hardware_controller = HardwareController(gps)
 
     ##Path
-    pathx = np.arange(0, 35, 0.001)
+    pathx = np.arange(0, 20, 0.001)
     pathy = []
     path = []
     for i in pathx:
-        pathno = 1
+        pathno = 2
         i = round(i, 3)
 
         if pathno == 1:
-            if i <30:
-                functy = 0
-            else:
-                functy = -0.015625/2*(i-30)**4
+            pathx = []
+            R = 15
+            t = np.linspace(np.pi, 3 * np.pi, 100000)
+            for i in t:
+                functx = 7.5 + 0.5 * R * np.cos(-i)
+                pathx.append(functx)
+                functy = 0.5 * R * np.sin(-i)
+                pathy.append(functy)
+                path.append((functx, functy))
 
         if pathno == 2:
             functy = 0
