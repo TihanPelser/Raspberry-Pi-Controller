@@ -70,7 +70,7 @@ if __name__ == "__main__":
             functy = 0
 
         if pathno == 3:
-            functy = 2*np.sin(((2*np.pi)/35)*i)
+            functy = 2*np.sin(((2*np.pi)/20)*i)
 
         pathy.append(functy)    
         path.append((i, functy))
