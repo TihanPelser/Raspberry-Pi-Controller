@@ -100,6 +100,8 @@ if __name__ == "__main__":
     steering_data = []
     gps_data = []
     xy_list = []
+
+
     step = 0
     try:
         # hardware_controller.startup()
@@ -114,7 +116,7 @@ if __name__ == "__main__":
             print(f"Step: {step}")
             time.sleep(0.05)
             # gps_data = gps.get_current_data()
-            gps_data.append([gps.lat, gps.long, gps.speed, gps.heading, heading])
+            gps_data.append([gps.lat, gps.long, gps.speed, gps.heading])
             st_data = hardware_controller.get_current_data()
             steering_data.append([st_data.steering_angle_set_point, st_data.current_steering_angle])
             velocity = gps.speed
@@ -202,7 +204,7 @@ if __name__ == "__main__":
                 d_f = error
             else:
                 d_f = error + np.arctan(k * derr / velocity)
-                
+
             if d_f > math.radians(20):
                 d_f = math.radians(20)
             elif d_f < math.radians(-20):
@@ -221,10 +223,13 @@ if __name__ == "__main__":
     print("Saving data")
     with open(f"TyroneResults/{RUN_NAME}_gps.txt", "w+") as file:
         for points in gps_data:
-            file.write(f"{points[0]},{points[1]},{points[2]},{points[3]},{points[4]}\n")
+            file.write(f"{points[0]},{points[1]},{points[2]},{points[3]}\n")
     with open(f"TyroneResults/{RUN_NAME}_steering.txt", "w+") as file:
         for f in steering_data:
             file.write(f"{f[0]},{f[1]}\n")
+    with open(f"TyroneResults/{RUN_NAME}_xy.txt", "w+") as file:
+        for points in xy_list:
+            file.write(f"{points[0]},{points[1]}\n")
     with open(f"TyroneResults/{RUN_NAME}_xy.txt", "w+") as file:
         for points in xy_list:
             file.write(f"{points[0]},{points[1]}\n")

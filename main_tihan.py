@@ -12,7 +12,7 @@ import time
 from controller.DQNController import DQNController
 from controller.error_calculations import calculate_errors
 
-INPUT_PATH_FILE = "paths/lc_path_straight.txt"
+INPUT_PATH_FILE = "paths/straight.txt"
 SPEED_SET_POINT = 0
 WAY_POINT_THRESHOLD = 0.5
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
             hardware_controller.set_steering_angle(dqn_action)
 
-            time.sleep(0.1)
+            time.sleep(0.2)
 
     except KeyboardInterrupt:
         print("Manual stop...")
