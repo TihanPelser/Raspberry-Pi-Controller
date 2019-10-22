@@ -15,8 +15,8 @@ def distance(p1, p2):
     return ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 
 def xyval(pt):
-    xcng = [pt[0], ref[1]]
-    ycng = [ref[0], pt[1]]
+    ycng = [pt[0], ref[1]]
+    xcng = [ref[0], pt[1]]
     x = abs(gc(ref, xcng).meters)
     y = abs(gc(ref, ycng).meters)
     return x, y
@@ -130,15 +130,15 @@ if __name__ == "__main__":
             xy_list.append([x, y])
 
             ##Adjust heading
-            #heading = np.arctan2((y-ylst), (x - xlst))                ##Use if GPS Heading is unreliable
-            #xlst = x                                                  ##Use if GPS Heading is unreliable
-            #ylst = y                                                  ##Use if GPS Heading is unreliable
+            heading = np.arctan2((y-ylst), (x - xlst))                ##Use if GPS Heading is unreliable
+            xlst = x                                                  ##Use if GPS Heading is unreliable
+            ylst = y                                                  ##Use if GPS Heading is unreliable
 
-            heading = gps.heading - math.degrees(theta) - 90           ##Use if GPS Heading is reliable
-            heading = math.radians(heading)                            ##Use if GPS Heading is reliable
-            heading = heading%math.radians(360)                        ##Use if GPS Heading is reliable
-            if heading > math.radians(180):                            ##Use if GPS Heading is reliable
-                heading = heading - math.radians(360)                  ##Use if GPS Heading is reliable
+            #heading = math.degrees(theta) - gps.heading - 90           ##Use if GPS Heading is reliable
+            #heading = math.radians(heading)                            ##Use if GPS Heading is reliable
+            #heading = heading%math.radians(360)                        ##Use if GPS Heading is reliable
+            #if heading > math.radians(180):                            ##Use if GPS Heading is reliable
+            #    heading = heading - math.radians(360)                  ##Use if GPS Heading is reliable
 
             #finding smallest distance between point and centre of gravity
             distvals = []
