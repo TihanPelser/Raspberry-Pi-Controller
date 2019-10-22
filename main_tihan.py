@@ -12,7 +12,7 @@ import time
 from controller.DQNController import DQNController
 from controller.error_calculations import calculate_errors
 
-INPUT_PATH_FILE = "paths/lc_path_straight.txt"
+INPUT_PATH_FILE = "paths/straight.txt"
 SPEED_SET_POINT = 0
 WAY_POINT_THRESHOLD = 0.5
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
             current_coords = np.array([gps.lat, gps.long])
             converted_coords = xy.geo_to_xy(origin=origin, point=current_coords)
             lat_error, yaw_error = calculate_errors(vehicle_coords=converted_coords, vehicle_heading=current_heading,
-                                                    preview_distance=1.5, path=path_xy)
+                                                    preview_distance=2.78, path=path_xy)
             distance_to_end, _ = xy.calc_distance_and_azimuth(point1=current_coords, point2=path[-1])
 
             print("Current Data:")
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
             hardware_controller.set_steering_angle(dqn_action)
 
-            time.sleep(0.1)
+            time.sleep(0.2)
 
     except KeyboardInterrupt:
         print("Manual stop...")

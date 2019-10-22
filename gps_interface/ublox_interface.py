@@ -10,7 +10,7 @@ position_data = namedtuple("pos_data", "lat, long, heading, speed")
 
 class UBX:
     def __init__(self, port: str = "/dev/ttyACM0", baud: int = 9600):
-        self.device = serial.Serial(port=port, baudrate=baud)
+        # self.device = serial.Serial(port=port, baudrate=baud)
         self.last_message = None
         self.queue = queue.Queue()
         self.is_reading = False

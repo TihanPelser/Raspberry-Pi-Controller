@@ -91,7 +91,7 @@ if __name__ == "__main__":
         distvals.append(distance(pt, ptp))
     indexval = distvals.index(min(distvals))
 
-    k = 2.1
+    k = 1.
 
     xlst = x
     ylst = y
@@ -130,15 +130,15 @@ if __name__ == "__main__":
             xy_list.append([x, y])
 
             ##Adjust heading
-            #heading = np.arctan2((y-ylst), (x - xlst))                ##Use if GPS Heading is unreliable
-            #xlst = x                                                  ##Use if GPS Heading is unreliable
-            #ylst = y                                                  ##Use if GPS Heading is unreliable
+            heading = np.arctan2((y-ylst), (x - xlst))                ##Use if GPS Heading is unreliable
+            xlst = x                                                  ##Use if GPS Heading is unreliable
+            ylst = y                                                  ##Use if GPS Heading is unreliable
 
-            heading = math.degrees(theta) - gps.heading - 90           ##Use if GPS Heading is reliable
-            heading = math.radians(heading)                            ##Use if GPS Heading is reliable
-            heading = heading%math.radians(360)                        ##Use if GPS Heading is reliable
-            if heading > math.radians(180):                            ##Use if GPS Heading is reliable
-                heading = heading - math.radians(360)                  ##Use if GPS Heading is reliable
+            #heading = math.degrees(theta) - gps.heading + 90           ##Use if GPS Heading is reliable
+            #heading = math.radians(heading)                            ##Use if GPS Heading is reliable
+            #heading = heading%math.radians(360)                        ##Use if GPS Heading is reliable
+            #if heading > math.radians(180):                            ##Use if GPS Heading is reliable
+            #    heading = heading - math.radians(360)                  ##Use if GPS Heading is reliable
 
             #finding smallest distance between point and centre of gravity
             distvals = []
@@ -147,7 +147,7 @@ if __name__ == "__main__":
             if up == True:
                 pt = [x, y]
                 # lkdist = int(50 * (velocity * 3.6))
-                lkdist = 75
+                lkdist = 500
                 if indexval - lkdist < 0:
                     pathc = path[0:(indexval + lkdist)]
                 elif indexval + lkdist > len(path) - 1:
