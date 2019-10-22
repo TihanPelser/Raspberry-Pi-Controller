@@ -15,8 +15,8 @@ def distance(p1, p2):
     return ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 
 def xyval(pt):
-    xcng = [pt[0], ref[1]]
-    ycng = [ref[0], pt[1]]
+    ycng = [pt[0], ref[1]]
+    xcng = [ref[0], pt[1]]
     x = abs(gc(ref, xcng).meters)
     y = abs(gc(ref, ycng).meters)
     return x, y
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     hardware_controller = HardwareController(gps)
 
     ##Path
-    pathx = np.arange(0, 20, 0.001)
+    pathx = np.arange(0, 20, 0.5)
     pathy = []
     path = []
     for i in pathx:
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         if pathno == 1:
             pathx = []
             R = 15
-            t = np.linspace(np.pi, 3 * np.pi, 100000)
+            t = np.linspace(np.pi, 3 * np.pi, 100)
             for i in t:
                 functx = 7.5 + 0.5 * R * np.cos(-i)
                 pathx.append(functx)
@@ -91,15 +91,18 @@ if __name__ == "__main__":
         distvals.append(distance(pt, ptp))
     indexval = distvals.index(min(distvals))
 
-    k = 1.
+    k = 2.1
 
     xlst = x
     ylst = y
     heading = 0
+    derr = 0
 
     steering_data = []
     gps_data = []
     xy_list = []
+    controller_data = []
+
     step = 0
     try:
         # hardware_controller.startup()
@@ -114,10 +117,12 @@ if __name__ == "__main__":
             print(f"Step: {step}")
             time.sleep(0.05)
             # gps_data = gps.get_current_data()
-            gps_data.append([gps.lat, gps.long, gps.speed, gps.heading, heading])
+            gps_data.append([gps.lat, gps.long, gps.speed, gps.heading])
             st_data = hardware_controller.get_current_data()
             steering_data.append([st_data.steering_angle_set_point, st_data.current_steering_angle])
+            controller_data.append(indexval, laterr, derr, heading)
             velocity = gps.speed
+
             ##Convert XY
             point = [gps.lat, gps.long]
 
@@ -131,10 +136,12 @@ if __name__ == "__main__":
 
             ##Adjust heading
             heading = np.arctan2((y-ylst), (x - xlst))                ##Use if GPS Heading is unreliable
+            if xy_list[-1][0] < xy_list[-2][0]:                   ##Use if GPS Heading is unreliable
+                heading = heading - math.radians(180)                   ##Use if GPS Heading is unreliable
             xlst = x                                                  ##Use if GPS Heading is unreliable
             ylst = y                                                  ##Use if GPS Heading is unreliable
 
-            #heading = math.degrees(theta) - gps.heading + 90           ##Use if GPS Heading is reliable
+            #heading = math.degrees(theta) - gps.heading - 90           ##Use if GPS Heading is reliable
             #heading = math.radians(heading)                            ##Use if GPS Heading is reliable
             #heading = heading%math.radians(360)                        ##Use if GPS Heading is reliable
             #if heading > math.radians(180):                            ##Use if GPS Heading is reliable
@@ -142,28 +149,23 @@ if __name__ == "__main__":
 
             #finding smallest distance between point and centre of gravity
             distvals = []
-            up = True                                                   ##Change to false if error occurs in line 119 - 137
+            up = True                                                  ##Change to false if error occurs in line 119 - 137
 
             if up == True:
                 pt = [x, y]
                 # lkdist = int(50 * (velocity * 3.6))
-                lkdist = 500
-                if indexval - lkdist < 0:
-                    pathc = path[0:(indexval + lkdist)]
-                elif indexval + lkdist > len(path) - 1:
-                    pathc = path[indexval - lkdist:-1]
+                lkdist = 10
+                if indexval + lkdist > len(path) - 1:
+                    pathc = path[indexval:-1]
                 else:
-                    pathc = path[indexval - lkdist:(indexval + lkdist)]
+                    pathc = path[indexval:(indexval + lkdist)]
                 if indexval == len(path):
                     indexval = 0
                 for i in pathc:
                     ptp = i
                     distvals.append(distance(pt, ptp))
                 mind = distvals.index(min(distvals))
-                if indexval - lkdist < 0:
-                    indexval = indexval + mind
-                else:
-                    indexval = indexval - lkdist + mind
+                indexval = indexval + mind
 
             if up == False:
                 pt = [x, y]
@@ -174,35 +176,47 @@ if __name__ == "__main__":
                 indexval = distvals.index(min(distvals))
 
             derr = np.sqrt(min(distvals))
+            if derr<=0.25:
+                indexval = indexval + 1
 
             ##path angle
             thetap = np.arctan((pathy[indexval] - pathy[indexval-1])/(pathx[indexval] - pathx[indexval-1]))
-
-            #angle between steering and path
-            if pathx[indexval] < pathx[indexval-1]:
+            if pathx[indexval]<pathx[indexval-1]:
                 thetap = thetap - math.radians(180)
+            if thetap>math.radians(180):
+                thetap = thetap - math.radians(360)
+            if thetap<math.radians(-180):
+                thetap = thetap + math.radians(360)
+
+            #angle between heading and path
             error = - (heading - thetap) % math.radians(360)
             if error > math.radians(180):
                 error = error - math.radians(360)
+            if error < math.radians(-180):
+                error = error + math.radians(360)
+
+            #Finding lateral error
+            grad = np.tan(heading)
+            laterr = abs(-grad*pathx[indexval] + pathy[indexval] + grad*x - y)/(grad**2 + 1)**0.5
 
             #steering angle adjustment
             M = np.tan(thetap)
             ysam = M*(x - pathx[indexval]) + pathy[indexval]
             if math.radians(-90) < thetap < math.radians(90):
                 if y > ysam:
+                    laterr = -laterr
                     derr = -derr
             if math.radians(90) < thetap < math.radians(180):
                 if y < ysam:
+                    laterr = -laterr
                     derr = -derr
             if math.radians(-90) > thetap > math.radians(-180):
                 if y < ysam:
+                    laterr = -laterr
                     derr = -derr
 
-            if -0.005 < derr < 0.005:
-                d_f = error
-            else:
-                d_f = error + np.arctan(k * derr / velocity)
-                
+            d_f = error + np.arctan(k * laterr / velocity)
+
             if d_f > math.radians(20):
                 d_f = math.radians(20)
             elif d_f < math.radians(-20):
@@ -212,7 +226,7 @@ if __name__ == "__main__":
 
             hardware_controller.set_steering_angle(d_f)
 
-            if indexval >= len(path)-10:
+            if indexval >= len(path)-1:
                 break
 
     except KeyboardInterrupt:
@@ -221,10 +235,13 @@ if __name__ == "__main__":
     print("Saving data")
     with open(f"TyroneResults/{RUN_NAME}_gps.txt", "w+") as file:
         for points in gps_data:
-            file.write(f"{points[0]},{points[1]},{points[2]},{points[3]},{points[4]}\n")
+            file.write(f"{points[0]},{points[1]},{points[2]},{points[3]}\n")
     with open(f"TyroneResults/{RUN_NAME}_steering.txt", "w+") as file:
         for f in steering_data:
             file.write(f"{f[0]},{f[1]}\n")
     with open(f"TyroneResults/{RUN_NAME}_xy.txt", "w+") as file:
         for points in xy_list:
             file.write(f"{points[0]},{points[1]}\n")
+    with open(f"TyroneResults/{RUN_NAME}_controller.txt", "w+") as file:
+        for points in controller_data:
+            file.write(f"{points[0]},{points[1]},{points[2]},{points[3]}\n")
