@@ -10,8 +10,9 @@ import time
 import numpy as np
 from collections import deque, namedtuple
 
-state = namedtuple("state", "speed_set_point, current_speed, steering_angle_set_point, current_steering_angle,"
-                            "steer_adc_set_point, steer_adc_avg, steer_dac_value, speed_dac_value")
+state = namedtuple("state", "time_stamp, speed_set_point, current_speed, steering_angle_set_point, "
+                            "current_steering_angle," "steer_adc_set_point, steer_adc_avg, steer_dac_value, "
+                            "speed_dac_value")
 
 
 # BASED ON LINEARISATION
@@ -27,6 +28,9 @@ class HardwareController:
     def __init__(self, gps: UBX):
         # self.steer = SteeringController(i2c=i2c)
         # self.speed = SpeedController(i2c=i2c, gps=gps)
+
+        self.sampling_time = 0.001
+        self.time_stamp = 0.
 
         # Steering Digital Pins
         self.left_pin = DIO.DigitalInOut(board.D21)  # D1
@@ -74,9 +78,14 @@ class HardwareController:
         # Speed PID Controller
         self._prev_error_speed = 0.
         self._cumulative_error_speed = 0.
+        # Original non-time related
+        # self.p_gain_speed = 0.01
+        # self.d_gain_speed = 1.
+        # self.i_gain_speed = 0.
+        # Sample time related
         self.p_gain_speed = 0.01
-        self.d_gain_speed = 1.
-        self.i_gain_speed = 0.
+        self.d_gain_speed = 1. / 1000
+        self.i_gain_speed = 0. * 1000
         self._speed_output_voltage = 0
         self._max_speed_voltage = 1.6
         self.driving_forward = True
@@ -88,7 +97,7 @@ class HardwareController:
         self._min_steer_voltage = 0.05
         self._steering_angle_set_point = 0.
         self._current_steering_angle = 0.
-        self._steer_adc_measurements = deque(maxlen=3)
+        self._steer_adc_measurements = deque(maxlen=1)
         self._steering_changed = False
         self._steer_adc_average = 0.
         self._steer_adc_set_point = 0.
@@ -96,10 +105,15 @@ class HardwareController:
         self.right_max = -20
 
         # Steering PID Controller
-        # Not implemented
+        # Original non-time related
+        # self.p_gain_steer = 15.
+        # self.d_gain_steer = 0.
+        # self.i_gain_steer = .2
+        # Sampling time related
         self.p_gain_steer = 15.
-        self.d_gain_steer = 0.
-        self.i_gain_steer = .2
+        self.d_gain_steer = 0. / 1000
+        self.i_gain_steer = .2 * 1000
+
         self._prev_error_steer = 0.
         self._cumulative_error_steer = 0.
 
@@ -157,6 +171,7 @@ class HardwareController:
         print("Shutdown complete!")
 
     def start_control(self):
+        self.time_stamp = 0.
         if self._gps.is_reading is False:
             print("GPS not reading!")
             return
@@ -178,8 +193,11 @@ class HardwareController:
 
     def _control(self):
         while not self._stop_threads:
+            start = time.time()
             self.correct_steering_angle()
             self.correct_speed()
+            time.sleep(self.sampling_time)
+            self.time_stamp += time.time() - start
 
     # SPEED
     def correct_speed(self):

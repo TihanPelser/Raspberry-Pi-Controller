@@ -92,11 +92,11 @@ if __name__ == "__main__":
 
             dqn_action = path_controller.act(np.reshape(input_state, [1, 2]))
 
-            dqn_results.append([input_state, dqn_action])
+            dqn_results.append([lat_error / 2.5, yaw_error / np.pi, dqn_action])
 
             hardware_controller.set_steering_angle(dqn_action)
 
-            time.sleep(0.2)
+            time.sleep(0.05)
 
     except KeyboardInterrupt:
         print("Manual stop...")

@@ -21,33 +21,30 @@ if __name__ == "__main__":
         hw.start_control()
         time.sleep(5)
         # Compensate for heavy battery
-        hw.set_steering_angle(-1)
+        hw.set_steering_angle(0)
+        time.sleep(2)
         print("Started Sampling")
         start = time.time()
         measuring_time = 0.
+
+        if TYPE == "steer":
+            hw.set_steering_angle(0)
+        elif TYPE == "speed":
+            hw.set_speed(0)
+
         while measuring_time <= 2:
-            if TYPE == "steer":
-                hw.set_steering_angle(0)
-                time.sleep(0.01)
-                data = hw.get_current_data()
-                response_data.append([data.steering_angle_set_point, data.current_steering_angle])
-            elif TYPE == "speed":
-                hw.set_speed(float(user_input))
-                time.sleep(0.01)
-                data = hw.get_current_data()
-                response_data.append([data.speed_set_point, data.current_speed])
+            response_data.append(hw.get_current_data())
+            time.sleep(0.001)
             measuring_time = time.time() - start
+
+        if TYPE == "steer":
+            hw.set_steering_angle(float(user_input))
+        elif TYPE == "speed":
+            hw.set_speed(float(user_input))
+
         while measuring_time <= 5:
-            if TYPE == "steer":
-                hw.set_steering_angle(float(user_input))
-                time.sleep(0.01)
-                data = hw.get_current_data()
-                response_data.append([data.steering_angle_set_point, data.current_steering_angle])
-            elif TYPE == "speed":
-                hw.set_speed(float(user_input))
-                time.sleep(0.01)
-                data = hw.get_current_data()
-                response_data.append([data.speed_set_point, data.current_speed])
+            response_data.append(hw.get_current_data())
+            time.sleep(0.001)
             measuring_time = time.time() - start
     except KeyboardInterrupt:
         print("Manual stop")
