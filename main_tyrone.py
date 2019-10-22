@@ -48,7 +48,7 @@ if __name__ == "__main__":
     hardware_controller = HardwareController(gps)
 
     ##Path
-    pathx = np.arange(0, 20, 0.001)
+    pathx = np.arange(0, 20, 0.5)
     pathy = []
     path = []
     for i in pathx:
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         if pathno == 1:
             pathx = []
             R = 15
-            t = np.linspace(np.pi, 3 * np.pi, 100000)
+            t = np.linspace(np.pi, 3 * np.pi, 100)
             for i in t:
                 functx = 7.5 + 0.5 * R * np.cos(-i)
                 pathx.append(functx)
@@ -149,28 +149,23 @@ if __name__ == "__main__":
 
             #finding smallest distance between point and centre of gravity
             distvals = []
-            up = False                                                   ##Change to false if error occurs in line 119 - 137
+            up = True                                                  ##Change to false if error occurs in line 119 - 137
 
             if up == True:
                 pt = [x, y]
                 # lkdist = int(50 * (velocity * 3.6))
-                lkdist = 75
-                if indexval - lkdist < 0:
-                    pathc = path[0:(indexval + lkdist)]
-                elif indexval + lkdist > len(path) - 1:
-                    pathc = path[indexval - lkdist:-1]
+                lkdist = 10
+                if indexval + lkdist > len(path) - 1:
+                    pathc = path[indexval:-1]
                 else:
-                    pathc = path[indexval - lkdist:(indexval + lkdist)]
+                    pathc = path[indexval:(indexval + lkdist)]
                 if indexval == len(path):
                     indexval = 0
                 for i in pathc:
                     ptp = i
                     distvals.append(distance(pt, ptp))
                 mind = distvals.index(min(distvals))
-                if indexval - lkdist < 0:
-                    indexval = indexval + mind
-                else:
-                    indexval = indexval - lkdist + mind
+                indexval = indexval + mind
 
             if up == False:
                 pt = [x, y]
@@ -181,6 +176,8 @@ if __name__ == "__main__":
                 indexval = distvals.index(min(distvals))
 
             derr = np.sqrt(min(distvals))
+            if derr<=0.25:
+                indexval = indexval + 1
 
             ##path angle
             thetap = np.arctan((pathy[indexval] - pathy[indexval-1])/(pathx[indexval] - pathx[indexval-1]))
