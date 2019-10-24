@@ -8,8 +8,21 @@ import numpy as np
 import time
 import math
 from typing import Any
+from coordinate_conversions import xy
 
 SPEED = 1.5
+PATH_FILE = "paths/tyrone_path_continuous.txt"
+
+
+def read_path(path_file: str):
+    path_data = []
+    with open(path_file, "r") as file:
+        for line in file:
+            x, y = line.split(",")
+            path_data.append([x, y])
+
+    return np.array(path_data)
+
 
 def distance(p1, p2):
     return ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
@@ -21,15 +34,16 @@ def xyval(pt):
     y = abs(gc(ref, ycng).meters)
     return x, y
 
-ref = [-25.74551249, 28.24783167]
+
+ref = [-25.745504699999998,28.247829399999997]
 xr, yr = xyval(ref)
 
-origin = [-25.74542167, 28.24752052]
+origin = [-25.7454172,28.247508999999997]
 xo, yo = xyval(origin)
 x0 = xyval(origin)[0] - xo
 y0 = xyval(origin)[1] - yo
 
-axishift = [-25.74521202, 28.24748998]
+axishift = [-25.745198499999997,28.247487399999997]
 xst = xyval(axishift)[0] - xo
 yst = xyval(axishift)[1] - yo
 
@@ -41,6 +55,10 @@ ys = round(-xst*np.sin(theta) + yst*np.cos(theta), 15)
 if __name__ == "__main__":
 
     RUN_NAME = sys.argv[1]
+    origin = np.array([-25.7454172, 28.247508999999997])
+
+    path_lat_long = read_path(PATH_FILE)
+    path = xy.convert_path(origin=origin, path=path_lat_long)
 
     gps = UBX()
     gps.start_reading()
@@ -48,41 +66,48 @@ if __name__ == "__main__":
     hardware_controller = HardwareController(gps)
 
     ##Path
-    pathx = np.arange(0, 20, 0.5)
-    pathy = []
-    path = []
-    for i in pathx:
-        pathno = 2
-        i = round(i, 3)
+    # pathx = np.arange(0, 20, 0.5)
+    # pathy = []
+    # path = []
 
-        if pathno == 1:
-            pathx = []
-            R = 15
-            t = np.linspace(np.pi, 3 * np.pi, 100)
-            for i in t:
-                functx = 7.5 + 0.5 * R * np.cos(-i)
-                pathx.append(functx)
-                functy = 0.5 * R * np.sin(-i)
-                pathy.append(functy)
-                path.append((functx, functy))
+    pathx = path[:, 0]
+    pathy = path[:, 1]
 
-        if pathno == 2:
-            functy = 0
 
-        if pathno == 3:
-            functy = 2*np.sin(((2*np.pi)/20)*i)
-
-        pathy.append(functy)    
-        path.append((i, functy))
+    # for i in pathx:
+    #     pathno = 2
+    #     i = round(i, 3)
+    #
+    #     if pathno == 1:
+    #         pathx = []
+    #         R = 15
+    #         t = np.linspace(np.pi, 3 * np.pi, 100)
+    #         for i in t:
+    #             functx = 7.5 + 0.5 * R * np.cos(-i)
+    #             pathx.append(functx)
+    #             functy = 0.5 * R * np.sin(-i)
+    #             pathy.append(functy)
+    #             path.append((functx, functy))
+    #
+    #     if pathno == 2:
+    #         functy = 0
+    #
+    #     if pathno == 3:
+    #         functy = 2*np.sin(((2*np.pi)/20)*i)
+    #
+    #     pathy.append(functy)
+    #     path.append((i, functy))
 
     ##Find initial closest point
-    point = [gps.lat, gps.long]
+    point = np.array([gps.lat, gps.long])
 
-    xp = xyval(point)[0] - xo
-    yp = xyval(point)[1] - yo
+    # xp = xyval(point)[0] - xo
+    # yp = xyval(point)[1] - yo
+    #
+    # x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
+    # y = round(-xp * np.sin(theta) + yp * np.cos(theta), 15)
 
-    x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
-    y = round(-xp * np.sin(theta) + yp * np.cos(theta), 15)
+    x, y = xy.geo_to_xy(origin=origin, point=point)
 
     distvals = []
     pt = [x, y]
@@ -100,7 +125,7 @@ if __name__ == "__main__":
 
     steering_data = []
     gps_data = []
-    xy_list = []
+    xy_list = [[0, 0]]
     controller_data = []
 
     step = 0
@@ -112,6 +137,12 @@ if __name__ == "__main__":
         print("Starting run")
         time.sleep(2)
         hardware_controller.set_speed(SPEED)
+        print("Starting straight")
+        time.sleep(2)
+        laterr = 0
+        derr = 0
+        heading = 0
+        error = 0
         while True:
             step += 1
             print(f"Step: {step}")
@@ -119,37 +150,42 @@ if __name__ == "__main__":
             # gps_data = gps.get_current_data()
             gps_data.append([gps.lat, gps.long, gps.speed, gps.heading])
             st_data = hardware_controller.get_current_data()
+
             steering_data.append([st_data.steering_angle_set_point, st_data.current_steering_angle])
-            controller_data.append(indexval, laterr, derr, heading)
+            controller_data.append([indexval, error, laterr, derr, heading])
             velocity = gps.speed
 
             ##Convert XY
-            point = [gps.lat, gps.long]
+            point = np.array([gps.lat, gps.long])
 
-            xp = xyval(point)[0] - xo
-            yp = xyval(point)[1] - yo
-
-            x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
-            y = round(-xp * np.sin(theta) + yp * np.cos(theta), 15)
+            # xp = xyval(point)[0] - xo
+            # yp = xyval(point)[1] - yo
+            #
+            # x = round(xp * np.cos(theta) + yp * np.sin(theta), 15)
+            # y = round(-xp * np.sin(theta) + yp * np.cos(theta), 15)
+            x, y = xy.geo_to_xy(origin=origin, point=point)
 
             xy_list.append([x, y])
 
             ##Adjust heading
-            heading = np.arctan2((y-ylst), (x - xlst))                ##Use if GPS Heading is unreliable
-            if xy_list[-1][0] < xy_list[-2][0]:                   ##Use if GPS Heading is unreliable
-                heading = heading - math.radians(180)                   ##Use if GPS Heading is unreliable
+            heading = np.arctan2((y-ylst), (x - xlst))               ##Use if GPS Heading is unreliable
+            if xy_list[-1][0] < xy_list[-2][0]:                      ##Use if GPS Heading is unreliable
+               heading = heading - math.radians(180)                ##Use if GPS Heading is unreliable
+            heading = heading%math.radians(360)                      ##Use if GPS Heading is unreliable
             xlst = x                                                  ##Use if GPS Heading is unreliable
             ylst = y                                                  ##Use if GPS Heading is unreliable
 
-            #heading = math.degrees(theta) - gps.heading - 90           ##Use if GPS Heading is reliable
-            #heading = math.radians(heading)                            ##Use if GPS Heading is reliable
-            #heading = heading%math.radians(360)                        ##Use if GPS Heading is reliable
-            #if heading > math.radians(180):                            ##Use if GPS Heading is reliable
-            #    heading = heading - math.radians(360)                  ##Use if GPS Heading is reliable
+            # heading = math.degrees(theta) - gps.heading + 90           ##Use if GPS Heading is reliable
+            # heading = math.radians(heading)                            ##Use if GPS Heading is reliable
+            # heading = heading%math.radians(360)                        ##Use if GPS Heading is reliable
+            # if heading > math.radians(180):                            ##Use if GPS Heading is reliable
+            #     heading = heading - math.radians(360)                  ##Use if GPS Heading is reliable
+            # heading = np.deg2rad(xy.convert_heading(heading=gps.heading))
+
 
             #finding smallest distance between point and centre of gravity
             distvals = []
-            up = True                                                  ##Change to false if error occurs in line 119 - 137
+            up = False                                           ##Change to false if error occurs in line 119 - 137
 
             if up == True:
                 pt = [x, y]
@@ -161,6 +197,10 @@ if __name__ == "__main__":
                     pathc = path[indexval:(indexval + lkdist)]
                 if indexval == len(path):
                     indexval = 0
+
+                if indexval > len(path) - 1:
+                    indexval = len(path) - 1
+
                 for i in pathc:
                     ptp = i
                     distvals.append(distance(pt, ptp))
@@ -187,6 +227,7 @@ if __name__ == "__main__":
                 thetap = thetap - math.radians(360)
             if thetap<math.radians(-180):
                 thetap = thetap + math.radians(360)
+
 
             #angle between heading and path
             error = - (heading - thetap) % math.radians(360)
@@ -216,6 +257,7 @@ if __name__ == "__main__":
                     derr = -derr
 
             d_f = error + np.arctan(k * laterr / velocity)
+            # d_f = error + np.arctan(k * laterr / velocity)
 
             if d_f > math.radians(20):
                 d_f = math.radians(20)
@@ -232,6 +274,9 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         hardware_controller.stop_control()
 
+    finally:
+        hardware_controller.stop_control()
+
     print("Saving data")
     with open(f"TyroneResults/{RUN_NAME}_gps.txt", "w+") as file:
         for points in gps_data:
@@ -244,4 +289,4 @@ if __name__ == "__main__":
             file.write(f"{points[0]},{points[1]}\n")
     with open(f"TyroneResults/{RUN_NAME}_controller.txt", "w+") as file:
         for points in controller_data:
-            file.write(f"{points[0]},{points[1]},{points[2]},{points[3]}\n")
+            file.write(f"{points[0]},{points[1]},{points[2]},{points[3]},{points[4]}\n")

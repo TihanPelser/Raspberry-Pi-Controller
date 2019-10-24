@@ -42,7 +42,7 @@ if __name__ == "__main__":
         elif TYPE == "speed":
             hw.set_speed(float(user_input))
 
-        while measuring_time <= 5:
+        while measuring_time <= 8:
             response_data.append(hw.get_current_data())
             time.sleep(0.001)
             measuring_time = time.time() - start

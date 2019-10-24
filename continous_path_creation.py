@@ -6,13 +6,15 @@ import time
 import sys
 
 
-def create_equidistant_points(points: np.ndarray):
+def create_equidistant_points(points_measured: np.ndarray):
     distance_between_points = 3
 
-    xp = points[:, 0]
-    yp = points[:, 1]
+    xp = points_measured[:, 0]
+    yp = points_measured[:, 1]
 
     data_x = xp
+
+    print(type(xp), type(yp))
 
     f = interp1d(xp, yp, kind="cubic")
     data_y = f(data_x)
@@ -59,19 +61,19 @@ if __name__ == "__main__":
     try:
         while True:
             points.append([gps.lat, gps.long])
-            time.sleep(0.05)
+            time.sleep(1.)
     except KeyboardInterrupt:
         print("Logging finished!")
 
     finally:
         points = np.array(points)
-        print("Converting points to X Y...")
-        origin = points[0]
-        path_xy = xy.convert_path(origin=origin, path=points)
-        print("Spacing points...")
-        spaced_path = create_equidistant_points(points=path_xy)
+        # print("Converting points to X Y...")
+        # origin = points[0]
+        # path_xy = xy.convert_path(origin=origin, path=points)
+        # print("Spacing points...")
+        # spaced_path = create_equidistant_points(points_measured=path_xy)
         print("Writing to file...")
-        with open(f"paths/{PATH_NAME}_equidistant.txt", "w+") as file:
-            for point in spaced_path:
+        with open(f"paths/{PATH_NAME}_continuous.txt", "w+") as file:
+            for point in points:
                 file.write(f"{point[0]},{point[1]}\n")
         print("Completed!")

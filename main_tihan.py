@@ -12,9 +12,9 @@ import time
 from controller.DQNController import DQNController
 from controller.error_calculations import calculate_errors
 
-INPUT_PATH_FILE = "paths/straight.txt"
-SPEED_SET_POINT = 0
-WAY_POINT_THRESHOLD = 0.5
+INPUT_PATH_FILE = "paths/sine_continuous.txt"
+SPEED_SET_POINT = 1.5
+WAY_POINT_THRESHOLD = 1.
 
 def read_path(path_file: str):
     path_data = []
@@ -54,13 +54,21 @@ if __name__ == "__main__":
 
     end_reached = False
     try:
+
         hardware_controller.start_control()
-        hardware_controller.set_speed(1.5)
-        time.sleep(1.5)
+        hardware_controller.set_speed(speed=SPEED_SET_POINT)
+        print("Starting run!")
+        run_up_time = 0
+        start = time.time()
+        while run_up_time <= 2:
+            gps_results.append(gps.get_current_data())
+            hardware_results.append(hardware_controller.get_current_data())
+            run_up_time = time.time() - start
+
         # Speed Override:
         # speed_volt = 0.8
         # hardware_controller.speed_dac.value = int(round(speed_volt/5) * 65535)
-        print("Starting run!")
+        print("Starting control loop")
         while not end_reached:
             # LOGGING
             hardware_results.append(hardware_controller.get_current_data())
@@ -88,11 +96,11 @@ if __name__ == "__main__":
 
             calculation_results.append([converted_coords, current_heading, lat_error, yaw_error])
 
-            input_state = np.array([lat_error / 2.5, yaw_error / np.pi])
+            input_state = np.array([lat_error / 5, yaw_error / np.pi])
 
             dqn_action = path_controller.act(np.reshape(input_state, [1, 2]))
 
-            dqn_results.append([lat_error / 2.5, yaw_error / np.pi, dqn_action])
+            dqn_results.append([lat_error / 5, yaw_error / np.pi, dqn_action])
 
             hardware_controller.set_steering_angle(dqn_action)
 

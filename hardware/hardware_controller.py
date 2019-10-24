@@ -17,11 +17,11 @@ state = namedtuple("state", "time_stamp, speed_set_point, current_speed, steerin
 
 # BASED ON LINEARISATION
 def _linear_angle_to_voltage(angle: float) -> float:
-    return 0.0133 * angle + 2.58296
+    return 0.0133 * angle + 2.6616
 
 
 def _linear_voltage_to_angle(voltage: float) -> float:
-    return (voltage - 2.58296) / 0.0133
+    return (voltage - 2.6616) / 0.0133
 
 
 class HardwareController:
@@ -93,7 +93,7 @@ class HardwareController:
         # Steering
         # 0 Degree Steer = 2.582V
         self._steer_output_voltage = 0.
-        self._max_steer_voltage = 3.5
+        self._max_steer_voltage = 4.5
         self._min_steer_voltage = 0.05
         self._steering_angle_set_point = 0.
         self._current_steering_angle = 0.
@@ -206,9 +206,9 @@ class HardwareController:
             self.speed_dac.value = 0
             return
         error = self._speed_set_point - self._measured_speed
-        self._cumulative_error_speed += error
+        self._cumulative_error_speed += error * self.sampling_time
         p_term = error * self.p_gain_speed
-        d_term = (error - self._prev_error_speed) * self.d_gain_speed
+        d_term = (error - self._prev_error_speed) / self.sampling_time * self.d_gain_speed
         i_term = self._cumulative_error_speed * self.i_gain_speed
         self._prev_error_speed = error
         # TODO: Improve control algorithm
@@ -287,10 +287,10 @@ class HardwareController:
         self._update_current_steering_angle()
         error = self._steer_adc_set_point - self._steer_adc_average
         # error = self._steer_adc_set_point - self._steer_adc_average
-        self._cumulative_error_steer += error
+        self._cumulative_error_steer += error * self.sampling_time
         self._prev_error_steer = error
         p_term = self.p_gain_steer * error
-        d_term = self.d_gain_steer * (error - self._prev_error_steer)
+        d_term = self.d_gain_steer * (error - self._prev_error_steer) / self.sampling_time
         i_term = self.i_gain_steer * self._cumulative_error_steer
         output = p_term + d_term + i_term
         # if not self._steering_changed:
@@ -334,7 +334,7 @@ class HardwareController:
     ############################################################
 
     def get_current_data(self):
-        data = state(speed_set_point=self._speed_set_point, current_speed=self._measured_speed,
+        data = state(time_stamp=self.time_stamp, speed_set_point=self._speed_set_point, current_speed=self._measured_speed,
                      steering_angle_set_point=self._steering_angle_set_point,
                      current_steering_angle=self._current_steering_angle, steer_adc_set_point=self._steer_adc_set_point,
                      steer_adc_avg=self._steer_adc_average, steer_dac_value=self._steer_output_voltage,

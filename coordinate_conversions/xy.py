@@ -12,8 +12,8 @@ geod = pyproj.Geod(ellps='WGS84')
 # Not really used
 def geo_to_xy(origin: np.ndarray, point: np.ndarray):
     dist, theta = calc_distance_and_azimuth(point1=origin, point2=point)
-    x = dist * np.cos(theta)
-    y = dist * np.sin(theta)
+    x = round(dist * np.cos(theta), 2)
+    y = round(dist * np.sin(theta), 2)
     return np.array([x, y])
 
 
@@ -29,8 +29,8 @@ def convert_path(origin: np.ndarray, path: np.ndarray):
     for point in path:
         dist, point_heading = calc_distance_and_azimuth(point1=origin, point2=point)
         # point_heading = np.deg2rad(convert_heading(azi))
-        x = dist * np.cos(point_heading)
-        y = dist * np.sin(point_heading)
+        x = round(dist * np.cos(point_heading), 2)
+        y = round(dist * np.sin(point_heading), 2)
         path_xy.append([x, y])
     return np.array(path_xy)
 
